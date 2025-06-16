@@ -1,5 +1,7 @@
 # FDGA
 
+![project tldr](depression_page-0001.jpg)
+
 ## UI must-dos
 - Read from a .mem file for visualisation
 - Interactive buttons to run/stop/reset
