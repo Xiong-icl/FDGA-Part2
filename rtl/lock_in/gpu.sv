@@ -23,13 +23,13 @@ module gpu #(
     //input kernel_config_t kernel_config,
 
     // Program Memory
-    output wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid,
+    // output wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid,
     output instruction_memory_address_t instruction_mem_read_address [INSTRUCTION_MEM_NUM_CHANNELS],
     // input wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_ready,
     input instruction_t instruction_mem_read_data [INSTRUCTION_MEM_NUM_CHANNELS],
 
     // Data Memory
-    output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid,
+    // output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid,
     output data_memory_address_t data_mem_read_address [DATA_MEM_NUM_CHANNELS],
     // input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready,
     input data_memory_address_t data_mem_read_data [DATA_MEM_NUM_CHANNELS],
@@ -42,6 +42,8 @@ module gpu #(
 kernel_config_t kernel_config_reg;
 
 logic start_execution; // EDA: Unimportant hack used because of EDA tooling
+wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid;
+wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid;
 
 // save kernel config on execution start to avoid losing data when the kernel is running
 always @(posedge clk) begin
