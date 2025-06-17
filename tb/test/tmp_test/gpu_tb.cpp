@@ -122,9 +122,9 @@ protected:
         top->warps_per_block = 1;
 
         // Simulate that memory is always ready
-        top->instruction_mem_read_ready = -1; // All 1s
-        top->data_mem_read_ready = -1;
-        top->data_mem_write_ready = -1;
+        // top->instruction_mem_read_ready = -1; // All 1s
+        // top->data_mem_read_ready = -1;
+        // top->data_mem_write_ready = -1;
         
         runSimulation(2); // Tick reset for a couple cycles
         top->reset = 0;
@@ -172,6 +172,21 @@ protected:
         }
         FAIL() << "GPU did not finish within the " << max_cycles << " cycle timeout.";
     }
+
+    void printMemoryRange(uint32_t start_addr = 40, uint32_t end_addr = 50) {
+        std::cout << "Memory contents from address " << start_addr << " to " << end_addr << ":\n";
+        std::cout << "Address\t\tValue\n";
+        std::cout << "-------\t\t-----\n";
+        
+        for (uint32_t addr = start_addr; addr <= end_addr; addr++) {
+            // Check if address exists in memory map
+            auto it = data_mem.find(addr);
+            uint32_t value = (it != data_mem.end()) ? it->second : 0xDEADBEEF;
+            
+            std::cout << "0x" << std::hex << std::setw(8) << std::setfill('0') << addr 
+                    << "\t0x" << std::hex << std::setw(8) << std::setfill('0') << value << std::endl;
+        }
+    }
     
     // Helper for float/int conversion
     static uint32_t float_to_bits(float f) { return *reinterpret_cast<uint32_t*>(&f); }
@@ -199,6 +214,7 @@ TEST_F(GpuTestbench, SimplestExit) {
 
 TEST_F(GpuTestbench, RScalarTest) {
     launchKernelAndWait("test/tmp_test/rscalar.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[42], 10);
     EXPECT_EQ(data_mem[43], 20);
     EXPECT_EQ(data_mem[44], 0);
@@ -212,6 +228,7 @@ TEST_F(GpuTestbench, RScalarTest) {
 
 TEST_F(GpuTestbench, IScalarTest) {
     launchKernelAndWait("test/tmp_test/iscalar.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[44], 20);
     EXPECT_EQ(data_mem[45], 100);
     EXPECT_EQ(data_mem[46], 1);
@@ -220,18 +237,21 @@ TEST_F(GpuTestbench, IScalarTest) {
 
 TEST_F(GpuTestbench, JumpTest) {
     launchKernelAndWait("test/tmp_test/jump.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[46], 0);
     EXPECT_EQ(data_mem[42], 5);
 }
 
 TEST_F(GpuTestbench, CScalarTest) {
     launchKernelAndWait("test/tmp_test/cscalar.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[43], 0);
     EXPECT_EQ(data_mem[44], 5);
 }
 
 TEST_F(GpuTestbench, MScalarTest) {
     launchKernelAndWait("test/tmp_test/mscalar.hex", 1, 1, "test/tmp_test/data_mscalar.hex", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
     EXPECT_EQ(data_mem[43], 32);
     EXPECT_EQ(data_mem[44], 32);
@@ -240,6 +260,7 @@ TEST_F(GpuTestbench, MScalarTest) {
 
 TEST_F(GpuTestbench, FScalarTest) {
     launchKernelAndWait("test/tmp_test/fscalar.hex", 1, 1, "test/tmp_test/data_fscalar.hex", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Scalar FADD failed";
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Scalar FSUB failed";
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Scalar FMUL failed";
@@ -250,6 +271,7 @@ TEST_F(GpuTestbench, FScalarTest) {
 
 TEST_F(GpuTestbench, RVectorTest) {
     launchKernelAndWait("test/tmp_test/rvector.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[42], 10);
     EXPECT_EQ(data_mem[43], 20);
     EXPECT_EQ(data_mem[44], 0);
@@ -259,6 +281,7 @@ TEST_F(GpuTestbench, RVectorTest) {
 
 TEST_F(GpuTestbench, IVectorTest) {
     launchKernelAndWait("test/tmp_test/ivector.hex", 1, 1, "", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(data_mem[44], 20);
     EXPECT_EQ(data_mem[45], 100);
     EXPECT_EQ(data_mem[46], 1);
@@ -268,15 +291,15 @@ TEST_F(GpuTestbench, IVectorTest) {
 
 TEST_F(GpuTestbench, MVectorTest) {
     launchKernelAndWait("test/tmp_test/mvector.hex", 1, 1, "test/tmp_test/data_mvector.hex", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
     EXPECT_EQ(data_mem[43], 32);
     EXPECT_EQ(data_mem[44], 32);
 }
 
-
-
 TEST_F(GpuTestbench, FVectorTest) {
     launchKernelAndWait("test/tmp_test/fvector.hex", 1, 1, "test/tmp_test/data_fvector.hex", 0, 0);
+    printMemoryRange(40, 50);
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Vector FADD failed";
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Vector FSUB failed";
     EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Vector FMUL failed";

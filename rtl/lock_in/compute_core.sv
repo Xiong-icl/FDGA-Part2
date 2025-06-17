@@ -219,7 +219,7 @@ always @(posedge clk) begin
         if (current_warp_state == WARP_UPDATE || current_warp_state == WARP_DONE || current_warp_state == WARP_WAIT) begin
             int next_warp = (current_warp + 1) % num_warps;
             int found_warp = -1;
-            $display("Block: %0d: Choosing next warp", block_id);
+            // $display("Block: %0d: Choosing next warp", block_id);
             for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
                 int warp_index = (next_warp + i) % num_warps;
                 if ((warp_state[warp_index] != WARP_IDLE) && (warp_state[warp_index] != WARP_FETCH) && (warp_state[warp_index] != WARP_DONE)) begin
