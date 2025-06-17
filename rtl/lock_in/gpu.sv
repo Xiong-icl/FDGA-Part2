@@ -41,22 +41,22 @@ module gpu #(
 
 // Unpacked signals
 
-logic instruction_memory_address_t instruction_mem_read_address_array [INSTRUCTION_MEM_NUM_CHANNELS];
+instruction_memory_address_t instruction_mem_read_address_array [INSTRUCTION_MEM_NUM_CHANNELS];
 assign {>>{instruction_mem_read_address}} = instruction_mem_read_address_array;
 
-logic instruction_t instruction_mem_read_data_array [INSTRUCTION_MEM_NUM_CHANNELS];
+instruction_t instruction_mem_read_data_array [INSTRUCTION_MEM_NUM_CHANNELS];
 assign {>>{instruction_mem_read_data}} = instruction_mem_read_data_array;
 
-logic data_memory_address_t data_mem_read_address_array [[DATA_MEM_NUM_CHANNELS]];
+data_memory_address_t data_mem_read_address_array [DATA_MEM_NUM_CHANNELS];
 assign {>>{data_mem_read_address}} = data_mem_read_address_array;
 
-logic data_memory_address_t data_mem_read_data_array [[DATA_MEM_NUM_CHANNELS]];
+data_memory_address_t data_mem_read_data_array [DATA_MEM_NUM_CHANNELS];
 assign {>>{data_mem_read_data}} = data_mem_read_data_array;
 
-logic data_memory_address_t data_mem_write_address_array [[DATA_MEM_NUM_CHANNELS]];
+data_memory_address_t data_mem_write_address_array [DATA_MEM_NUM_CHANNELS];
 assign {>>{data_mem_write_address}} = data_mem_write_address_array;
 
-logic data_t data_mem_write_data_array [[DATA_MEM_NUM_CHANNELS]];
+data_t data_mem_write_data_array [DATA_MEM_NUM_CHANNELS];
 assign {>>{data_mem_write_data}} = data_mem_write_data_array;
 
 kernel_config_t kernel_config_reg;
@@ -160,7 +160,7 @@ mem_controller #(
         .mem_read_data(data_mem_read_data_array),
 
         .mem_write_valid(data_mem_write_valid),
-        .mem_write_address(data_mem_write_array),
+        .mem_write_address(data_mem_write_address_array),
         .mem_write_data(data_mem_write_data_array),
         .mem_write_ready(8'b11111111)
     );
