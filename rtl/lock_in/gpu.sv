@@ -24,46 +24,46 @@ module gpu #(
 
     // Program Memory
     output wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid,
-    output instruction_memory_address_packed instruction_mem_read_address,
+    output instruction_memory_address_t instruction_mem_read_address [INSTRUCTION_MEM_NUM_CHANNELS],
     // input wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_ready,
-    input instruction_packed instruction_mem_read_data,
+    input instruction_t instruction_mem_read_data [INSTRUCTION_MEM_NUM_CHANNELS],
 
     // Data Memory
     output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid,
-    output data_memory_address_packed data_mem_read_address,
+    output data_memory_address_t data_mem_read_address [DATA_MEM_NUM_CHANNELS],
     // input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready,
-    input data_memory_address_packed data_mem_read_data,
+    input data_memory_address_t data_mem_read_data [DATA_MEM_NUM_CHANNELS],
     output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_valid,
-    output data_memory_address_packed data_mem_write_address,
-    output data_packed data_mem_write_data
+    output data_memory_address_t data_mem_write_address [DATA_MEM_NUM_CHANNELS],
+    output data_t data_mem_write_data [DATA_MEM_NUM_CHANNELS]
     // input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
 );
 
 // Unpacked signals
 
-instruction_memory_address_t instruction_mem_read_address_array [INSTRUCTION_MEM_NUM_CHANNELS];
-assign {>>{instruction_mem_read_address}} = instruction_mem_read_address_array;
+// instruction_memory_address_t instruction_mem_read_address_array [INSTRUCTION_MEM_NUM_CHANNELS];
+// assign {>>{instruction_mem_read_address}} = instruction_mem_read_address_array;
 
-instruction_t instruction_mem_read_data_array [INSTRUCTION_MEM_NUM_CHANNELS];
-assign {>>{instruction_mem_read_data}} = instruction_mem_read_data_array;
+// instruction_t instruction_mem_read_data_array [INSTRUCTION_MEM_NUM_CHANNELS];
+// assign {>>{instruction_mem_read_data}} = instruction_mem_read_data_array;
 
-data_memory_address_t data_mem_read_address_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_read_address}} = data_mem_read_address_array;
+// data_memory_address_t data_mem_read_address_array [DATA_MEM_NUM_CHANNELS];
+// assign {>>{data_mem_read_address}} = data_mem_read_address_array;
 
-data_memory_address_t data_mem_read_data_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_read_data}} = data_mem_read_data_array;
+// data_memory_address_t data_mem_read_data_array [DATA_MEM_NUM_CHANNELS];
+// assign {>>{data_mem_read_data}} = data_mem_read_data_array;
 
-data_memory_address_t data_mem_write_address_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_write_address}} = data_mem_write_address_array;
+// data_memory_address_t data_mem_write_address_array [DATA_MEM_NUM_CHANNELS];
+// assign {>>{data_mem_write_address}} = data_mem_write_address_array;
 
-data_t data_mem_write_data_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_write_data}} = data_mem_write_data_array;
+// data_t data_mem_write_data_array [DATA_MEM_NUM_CHANNELS];
+// assign {>>{data_mem_write_data}} = data_mem_write_data_array;
 
 kernel_config_t kernel_config_reg;
 
 logic start_execution; // EDA: Unimportant hack used because of EDA tooling
-wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid;
-wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid;
+// wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid;
+// wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid;
 
 // save kernel config on execution start to avoid losing data when the kernel is running
 always @(posedge clk) begin
@@ -155,13 +155,13 @@ mem_controller #(
         .consumer_write_ready(lsu_write_ready),
 
         .mem_read_valid(data_mem_read_valid),
-        .mem_read_address(data_mem_read_address_array),
+        .mem_read_address(data_mem_read_address),
         .mem_read_ready(8'b11111111),
-        .mem_read_data(data_mem_read_data_array),
+        .mem_read_data(data_mem_read_data),
 
         .mem_write_valid(data_mem_write_valid),
-        .mem_write_address(data_mem_write_address_array),
-        .mem_write_data(data_mem_write_data_array),
+        .mem_write_address(data_mem_write_address),
+        .mem_write_data(data_mem_write_data),
         .mem_write_ready(8'b11111111)
     );
 
@@ -201,9 +201,9 @@ mem_controller #(
     .consumer_write_ready(d_consumer_write_ready),
 
     .mem_read_valid(instruction_mem_read_valid),
-    .mem_read_address(instruction_mem_read_address_array),
+    .mem_read_address(instruction_mem_read_address),
     .mem_read_ready(8'b11111111),
-    .mem_read_data(instruction_mem_read_data_array),
+    .mem_read_data(instruction_mem_read_data),
 
     .mem_write_valid(d_mem_write_valid),
     .mem_write_address(d_mem_write_address),
