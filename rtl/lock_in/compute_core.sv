@@ -89,6 +89,7 @@ data_t vector_float_rs2 [WARPS_PER_CORE][THREADS_PER_WARP];
 warp_mask_t warp_execution_mask [WARPS_PER_CORE];
 
 logic all_warps_done = 1'b1;
+logic any_lsu_waiting;
 
 // ALU/LSU Operands and Results
 data_t final_op1 [THREADS_PER_WARP];
@@ -121,12 +122,8 @@ always_comb begin
         2'b11: {scalar_op1, scalar_op2} = {scalar_float_rs1[current_warp], scalar_float_rs2[current_warp]};
         default: {scalar_op1, scalar_op2} = {scalar_int_rs1[current_warp], scalar_int_rs2[current_warp]};
     endcase
+    //$display("data_mem_read_valid: ", data_mem_read_valid);
 end
-
-//Generate Muxing logic for each of the Vector SIMT lanes
-// DELETE the entire old `g_operand_mux` generate block.
-
-// REPLACE it with this:
 
 //Generate Muxing logic for each of the Vector SIMT lanes
 generate
@@ -157,10 +154,12 @@ endgenerate
 
 always_comb begin
     all_warps_done = 1'b1;
-    for (int i = 0; i < num_warps; i = i + 1) begin
-        if (warp_state[i] != WARP_DONE) begin
-            all_warps_done = 1'b0;
-            break;
+    for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
+        if (i < num_warps) begin
+            if (warp_state[i] != WARP_DONE) begin
+                all_warps_done = 1'b0;
+                break;
+            end
         end
     end
 end
@@ -179,7 +178,6 @@ always @(posedge clk) begin
             pc[i] <= 0;
             next_pc[i] <= 0;
             current_warp <= 0;
-            fetched_instruction[i] <= 32'b0;
         end
 
     end else if (!start_execution) begin
@@ -193,19 +191,38 @@ always @(posedge clk) begin
             // Set all warps to fetch state on start
             start_execution <= 1;
             current_warp <= 0;
-            for (int i = 0; i < num_warps; i = i + 1) begin
-                warp_state[i] = WARP_FETCH;
-                fetcher_state[i] = FETCHER_IDLE;
-                pc[i] = kernel_config.base_instructions_address;
-                next_pc[i] = kernel_config.base_instructions_address;
+            for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
+                if (i<num_warps) begin
+                    warp_state[i] = WARP_FETCH;
+                    fetcher_state[i] = FETCHER_IDLE;
+                    pc[i] = kernel_config.base_instructions_address;
+                    next_pc[i] = kernel_config.base_instructions_address;
+                end else begin
+                    warp_state[i] = WARP_IDLE;
+                    fetcher_state[i] = FETCHER_IDLE;
+                    pc[i] = 0;
+                    next_pc[i] = 0;
+                end
             end
         end
     end else begin
         // In parallel, check if fetchers are done, and if so, move to decode
-        for (int i = 0; i < num_warps; i = i + 1) begin
-            if (warp_state[i] == WARP_FETCH && fetcher_state[i] == FETCHER_DONE) begin
-                $display("Block: %0d: Warp %0d: Fetched instruction %h at address %h", block_id, i, fetched_instruction[i], pc[i]);
-                warp_state[i] = WARP_DECODE;
+        for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
+            if (i < num_warps) begin
+                if (warp_state[i] == WARP_FETCH && fetcher_state[i] == FETCHER_DONE) begin
+                    $display("Block: %0d: Warp %0d: Fetched instruction %h at address %h", block_id, i, fetched_instruction[i], pc[i]);
+                    warp_state[i] = WARP_DECODE;
+                end
+            end
+        end
+        all_warps_done = 1'b1;
+        // If all warps are done, we are done
+        for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
+            if (i<num_warps) begin
+                if (warp_state[i] != WARP_DONE) begin
+                    all_warps_done = 1'b0;
+                    break;
+                end
             end
         end
         done <= all_warps_done;
@@ -216,21 +233,35 @@ always @(posedge clk) begin
         // - WARP_DONE - that means that the warp has finished execution
         // - WARP_FETCH - that means that the warp is fetching instructions
         // For now we do not change state unless we are in WARP_UPDATE
-        if (current_warp_state == WARP_UPDATE || current_warp_state == WARP_DONE || current_warp_state == WARP_WAIT) begin
-            int next_warp = (current_warp + 1) % num_warps;
-            int found_warp = -1;
-            // $display("Block: %0d: Choosing next warp", block_id);
+        if (current_warp_state == WARP_UPDATE || current_warp_state == WARP_DONE 
+        || current_warp_state == WARP_WAIT) begin
+
+            logic [WARP_INDEX_WIDTH-1:0] next_warp_candidate;
+            logic found_valid_warp;
+
+            next_warp_candidate = (current_warp + 1) % WARPS_PER_CORE;
+            found_valid_warp = 1'b0;
+
+            $display("Block: %0d: Choosing next warp", block_id);
             for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-                int warp_index = (next_warp + i) % num_warps;
-                if ((warp_state[warp_index] != WARP_IDLE) && (warp_state[warp_index] != WARP_FETCH) && (warp_state[warp_index] != WARP_DONE)) begin
-                    found_warp = warp_index;
-                    break;
+                logic [WARP_INDEX_WIDTH-1:0] warp_index;
+                warp_index = (next_warp_candidate + i) % WARPS_PER_CORE;
+                
+                // Only consider warps that are within the active range
+                if (warp_index < num_warps) begin
+                    if ((warp_state[warp_index] != WARP_IDLE) && 
+                        (warp_state[warp_index] != WARP_FETCH) && 
+                        (warp_state[warp_index] != WARP_DONE)) begin
+                        if (!found_valid_warp) begin
+                            current_warp <= warp_index;
+                            found_valid_warp = 1'b1;
+                        end
+                    end
                 end
             end
-            if (found_warp != -1) begin
-                current_warp <= found_warp;
-            end else begin
-                // No active warp ready; remain with current warp
+            
+            // If no valid warp found, stay with current warp
+            if (!found_valid_warp) begin
                 current_warp <= current_warp;
             end
         end
@@ -246,22 +277,40 @@ always @(posedge clk) begin
             WARP_DECODE: begin
                 // decoding takes one cycle
                 warp_state[current_warp] <= WARP_REQUEST;
+                // $display("Check Warp Req: ", warp_state[current_warp]);
             end
             WARP_REQUEST: begin
+                // if (decoded_mem_read_enable_per_warp[current_warp] || decoded_mem_write_enable_per_warp[current_warp]) begin
+                //         warp_state[current_warp] <= WARP_WAIT;
+                //     end else begin
+                //         // Not a memory op, so no need to wait for the MCU.
+                //         warp_state[current_warp] <= WARP_EXECUTE;
+                //     end
+                // end
                 // takes one cycle cause we are just changing the LSU state
+                // if (decoded_mem_read_enable_per_warp[current_warp] || decoded_mem_write_enable_per_warp[current_warp]) begin
+                //     // We have a memory op! Pulse the start signal for the MCU for one cycle.
+                //     start_mcu_transaction <= 1'b1;
+                // end
+                // Always transition to WAIT after this stage.
+                $display("In warp request");
                 warp_state[current_warp] <= WARP_WAIT;
             end
             WARP_WAIT: begin
-                reg any_lsu_waiting = 1'b0;
+                //$display("WARP_WAIT");
+                any_lsu_waiting = 1'b0;
                 for (int i = 0; i < THREADS_PER_WARP; i++) begin
                     // Make sure no lsu_state = REQUESTING or WAITING
                     if (lsu_state[i] == LSU_REQUESTING || lsu_state[i] == LSU_WAITING) begin
+                        // $display("Stuck in vector");
                         any_lsu_waiting = 1'b1;
                         break;
                     end
                 end
-
+                //$display("LSU_REQUESTING: ", scalar_lsu_state == LSU_REQUESTING);
+                // $display("LSU_WAIT: ", scalar_lsu_state == LSU_WAITING);
                 if (scalar_lsu_state == LSU_REQUESTING || scalar_lsu_state == LSU_WAITING) begin
+                    // $display("Stuck in scalar");
                     any_lsu_waiting = 1'b1;
                 end
 
@@ -274,7 +323,7 @@ always @(posedge clk) begin
                 $display("===================================");
                 $display("Mask: %32b", warp_execution_mask[current_warp]);
                 $display("Block: %0d: Warp %0d: Executing instruction %h at address %h", block_id, current_warp, fetched_instruction[current_warp], pc[current_warp]);
-                $display("Instruction opcode: %b", fetched_instruction[current_warp][31:29]);
+                // $display("Instruction opcode: %b", fetched_instruction[current_warp][31:29]);
                 $display("Block: %0d: Warp %0d: Executing instruction %h", block_id, current_warp, fetched_instruction[current_warp]);
             
                 if (decoded_scalar_instruction[current_warp]) begin
@@ -582,10 +631,13 @@ always_comb begin
     // $display("Scalar LSU Out: ", scalar_lsu_out);
     //$display("scalar alu out: ", scalar_alu_out);
     //$display("decoded alu instr: ", decoded_alu_instruction[current_warp]);
-    
+
+    // $display("data_mem_write_valid: ", data_mem_write_valid[THREADS_PER_WARP]);
+
 end
-
-
+// always_comb begin
+//     $display("data_mem_write_data[THREADS_PER_WARP]: ", data_mem_write_data[16]);
+// end
 lsu scalar_lsu_inst(
     .clk(clk),
     .reset(reset),
@@ -618,10 +670,9 @@ lsu scalar_lsu_inst(
 generate
     for (genvar i = 0; i < THREADS_PER_WARP; i = i + 1) begin : g_vector_units
         wire t_enable = current_warp_execution_mask[i] && !decoded_scalar_instruction[current_warp];
-        wire is_vector_float_op = t_enable && (decoded_alu_instruction[current_warp] >= FADD);
-        wire is_vector_int_op  = t_enable && (decoded_alu_instruction[current_warp] < FADD);
        
         data_t vector_int_alu_result, vector_float_alu_result;
+        logic is_float_op;
 
         // Vector ALU
         alu vector_alu_inst(
@@ -647,9 +698,14 @@ generate
         assign alu_out[i] = (decoded_alu_instruction[current_warp] >= FADD) ? vector_float_alu_result : vector_int_alu_result;
         
 
-        // always_comb begin 
-        //     $display("Final op1: ", final_op1[i]);
-        // end
+         always_comb begin
+            is_float_op = (decoded_alu_instruction[current_warp] >= FADD);
+            if (is_float_op) begin
+                alu_out[i] = vector_float_alu_result;
+            end else begin
+                alu_out[i] = vector_int_alu_result;
+            end
+         end
 
         lsu lsu_inst(
             .clk(clk),
