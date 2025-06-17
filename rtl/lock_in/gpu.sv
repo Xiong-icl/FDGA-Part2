@@ -62,6 +62,8 @@ assign {>>{data_mem_write_data}} = data_mem_write_data_array;
 kernel_config_t kernel_config_reg;
 
 logic start_execution; // EDA: Unimportant hack used because of EDA tooling
+wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid;
+wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid;
 
 // save kernel config on execution start to avoid losing data when the kernel is running
 always @(posedge clk) begin
