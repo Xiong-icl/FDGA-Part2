@@ -26,18 +26,18 @@ module gpu #(
     // Program Memory
     output wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_valid,
     output instruction_memory_address_t instruction_mem_read_address [INSTRUCTION_MEM_NUM_CHANNELS],
-    input wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_ready,
+    // input wire [INSTRUCTION_MEM_NUM_CHANNELS-1:0] instruction_mem_read_ready,
     input instruction_t instruction_mem_read_data [INSTRUCTION_MEM_NUM_CHANNELS],
 
     // Data Memory
     output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid,
     output data_memory_address_t data_mem_read_address [DATA_MEM_NUM_CHANNELS],
-    input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready,
+    // input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready,
     input data_memory_address_t data_mem_read_data [DATA_MEM_NUM_CHANNELS],
     output wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_valid,
     output data_memory_address_t data_mem_write_address [DATA_MEM_NUM_CHANNELS],
-    output data_t data_mem_write_data [DATA_MEM_NUM_CHANNELS],
-    input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
+    output data_t data_mem_write_data [DATA_MEM_NUM_CHANNELS]
+    // input wire [DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
 );
 
 kernel_config_t kernel_config_reg;
@@ -135,13 +135,13 @@ mem_controller #(
 
         .mem_read_valid(data_mem_read_valid),
         .mem_read_address(data_mem_read_address),
-        .mem_read_ready(data_mem_read_ready),
+        .mem_read_ready(8'b11111111),
         .mem_read_data(data_mem_read_data),
 
         .mem_write_valid(data_mem_write_valid),
         .mem_write_address(data_mem_write_address),
         .mem_write_data(data_mem_write_data),
-        .mem_write_ready(data_mem_write_ready)
+        .mem_write_ready(8'b11111111)
     );
 
 
@@ -181,7 +181,7 @@ mem_controller #(
 
     .mem_read_valid(instruction_mem_read_valid),
     .mem_read_address(instruction_mem_read_address),
-    .mem_read_ready(instruction_mem_read_ready),
+    .mem_read_ready(8'b11111111),
     .mem_read_data(instruction_mem_read_data),
 
     .mem_write_valid(d_mem_write_valid),
