@@ -145,7 +145,7 @@ end
 // =====================================================
 // STAGE 2: MANTISSA OPERATION
 // =====================================================
-always_ff @(posedge clk or posedge rst) begin
+always_ff @(posedge clk) begin
     // $display("rst: ",rst);
     if (rst) begin
         s2_op1 <= 32'd0;

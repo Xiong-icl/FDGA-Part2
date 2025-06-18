@@ -90,7 +90,6 @@ warp_mask_t warp_execution_mask [WARPS_PER_CORE];
 
 logic all_warps_done = 1'b1;
 logic any_lsu_waiting;
-logic alu_enable;
 
 // ALU/LSU Operands and Results
 data_t final_op1 [THREADS_PER_WARP];
@@ -106,8 +105,6 @@ data_t vector_to_scalar_data [WARPS_PER_CORE];
 // Operand Muxing Logic
 warp_mask_t current_warp_execution_mask;
 assign current_warp_execution_mask = warp_execution_mask[current_warp];
-// Think of this as should I even start?
-assign alu_enable = (current_warp_state == WARP_EXECUTE); 
 data_t scalar_op1;
 data_t scalar_op2;
 
@@ -571,9 +568,6 @@ wire is_scalar_int_op  = decoded_scalar_instruction[current_warp] && (decoded_al
 
 // Scalar ALU
 alu scalar_alu_inst(
-    .clk(clk),
-    .rst(reset),
-    .enable(alu_enable),
     .pc(pc[current_warp]),
     .ALUop1(scalar_op1),
     .ALUop2(scalar_op2),
@@ -586,9 +580,6 @@ alu scalar_alu_inst(
 
 // Scalar Floating ALU
 floating_alu scalar_fpu_inst(
-    .clk(clk),
-    .rst(reset),
-    .valid(),
     .op1(scalar_op1),
     .op2(scalar_op2),
     .instruction(decoded_alu_instruction[current_warp]),
@@ -661,9 +652,6 @@ generate
 
         // Vector ALU
         alu vector_alu_inst(
-            .clk(clk),
-            .rst(reset),
-            .enable(alu_enable),
             .pc(pc[current_warp]),
             .ALUop1(final_op1[i]),
             .ALUop2(final_op2[i]),
@@ -675,9 +663,6 @@ generate
         );
         // Vector Floating ALU
         floating_alu vector_fpu_inst(
-           .clk(clk),
-           .rst(reset),
-           .valid(),
             .op1(final_op1[i]),
             .op2(final_op2[i]),
             .instruction(decoded_alu_instruction[current_warp]),
