@@ -43,7 +43,7 @@ localparam int BLOCK_ID_REG     = 30;
 localparam int BLOCK_SIZE_REG   = 31;
 
 // Register file: each thread has its own set of 32 registers
-data_t registers [THREADS_PER_WARP][32];
+(* ram_style = "block" *) data_t registers [THREADS_PER_WARP][32];
 
 // Compute thread IDs per thread during reset
 data_t thread_ids [THREADS_PER_WARP];

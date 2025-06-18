@@ -7,7 +7,7 @@ module gpu #(
     parameter int INSTRUCTION_MEM_NUM_CHANNELS /*verilator public*/ = 8,     // Number of concurrent channels for sending requests to data memory
     parameter int NUM_CORES /*verilator public*/ = 1,                 // Number of cores to include in this GPU
     parameter int WARPS_PER_CORE /*verilator public*/ = 1,            // Number of warps to in each core
-    parameter int THREADS_PER_WARP /*verilator public*/ = 16          // Number of threads per warp (max 32)
+    parameter int THREADS_PER_WARP /*verilator public*/ = 8          // Number of threads per warp (max 32)
 ) (
     input wire clk,
     input wire reset,
@@ -40,24 +40,27 @@ module gpu #(
 );
 
 // Unpacked signals
-
 instruction_memory_address_t instruction_mem_read_address_array [INSTRUCTION_MEM_NUM_CHANNELS];
-assign {>>{instruction_mem_read_address}} = instruction_mem_read_address_array;
-
 instruction_t instruction_mem_read_data_array [INSTRUCTION_MEM_NUM_CHANNELS];
-assign {>>{instruction_mem_read_data}} = instruction_mem_read_data_array;
-
 data_memory_address_t data_mem_read_address_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_read_address}} = data_mem_read_address_array;
-
 data_memory_address_t data_mem_read_data_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_read_data}} = data_mem_read_data_array;
-
 data_memory_address_t data_mem_write_address_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_write_address}} = data_mem_write_address_array;
-
 data_t data_mem_write_data_array [DATA_MEM_NUM_CHANNELS];
-assign {>>{data_mem_write_data}} = data_mem_write_data_array;
+
+// Pack/unpack assignments using generate loops
+generate
+    for (genvar i = 0; i < INSTRUCTION_MEM_NUM_CHANNELS; i++) begin : g_instr_pack
+        assign instruction_mem_read_address[i*`INSTRUCTION_MEMORY_ADDRESS_WIDTH +: `INSTRUCTION_MEMORY_ADDRESS_WIDTH] = instruction_mem_read_address_array[i];
+        assign instruction_mem_read_data_array[i] = instruction_mem_read_data[i*`INSTRUCTION_WIDTH +: `INSTRUCTION_WIDTH];
+    end
+    
+    for (genvar i = 0; i < DATA_MEM_NUM_CHANNELS; i++) begin : g_data_pack
+        assign data_mem_read_address[i*`DATA_MEMORY_ADDRESS_WIDTH +: `DATA_MEMORY_ADDRESS_WIDTH] = data_mem_read_address_array[i];
+        assign data_mem_read_data_array[i] = data_mem_read_data[i*`DATA_MEMORY_ADDRESS_WIDTH +: `DATA_MEMORY_ADDRESS_WIDTH];
+        assign data_mem_write_address[i*`DATA_MEMORY_ADDRESS_WIDTH +: `DATA_MEMORY_ADDRESS_WIDTH] = data_mem_write_address_array[i];
+        assign data_mem_write_data[i*`DATA_WIDTH +: `DATA_WIDTH] = data_mem_write_data_array[i];
+    end
+endgenerate
 
 kernel_config_t kernel_config_reg;
 
@@ -233,12 +236,12 @@ generate
         genvar j;
         for (j = 0; j < NUM_LSUS_PER_CORE; j = j + 1) begin : g_lsu_connect
             localparam lsu_index = i * NUM_LSUS_PER_CORE + j;
-            always @(posedge clk) begin
+            always@(posedge clk) begin
                 lsu_read_valid[lsu_index] <= core_lsu_read_valid[j];
                 lsu_read_address[lsu_index] <= core_lsu_read_address[j];
 
                 lsu_write_valid[lsu_index] <= core_lsu_write_valid[j];
-                lsu_write_address[lsu_index] <= core_lsu_write_address[j];
+                lsu_write_address[lsu_index]<= core_lsu_write_address[j];
                 lsu_write_data[lsu_index] <= core_lsu_write_data[j];
 
                 core_lsu_read_ready[j] <= lsu_read_ready[lsu_index];

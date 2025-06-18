@@ -7,7 +7,7 @@
 
 module compute_core#(
     parameter int WARPS_PER_CORE = 4,            // Number of warps to in each core
-    parameter int THREADS_PER_WARP = 16          // Number of threads per warp (max 32)
+    parameter int THREADS_PER_WARP = 8          // Number of threads per warp (max 32)
     )(
     input   wire                            clk,
     input   wire                            reset,
@@ -37,7 +37,7 @@ module compute_core#(
 
 typedef logic [THREADS_PER_WARP-1:0] warp_mask_t;
 localparam int NUM_LSUS = THREADS_PER_WARP + 1;
-localparam int WARP_INDEX_WIDTH = (WARPS_PER_CORE > 1) ? $clog2(WARPS_PER_CORE) : 1;
+localparam int WARP_INDEX_WIDTH = 1;
 
 // Warp State and Control
 logic [WARP_INDEX_WIDTH-1:0] current_warp;
@@ -154,12 +154,9 @@ endgenerate
 
 always_comb begin
     all_warps_done = 1'b1;
-    for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-        if (i < num_warps) begin
-            if (warp_state[i] != WARP_DONE) begin
-                all_warps_done = 1'b0;
-                break;
-            end
+    if (0 < num_warps) begin
+        if (warp_state[0] != WARP_DONE) begin
+            all_warps_done = 1'b0;
         end
     end
 end
@@ -172,12 +169,10 @@ always @(posedge clk) begin
         //$display("Resetting core %0d", block_id);
         start_execution <= 0;
         done <= 0;
-        for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-            warp_state[i] <= WARP_IDLE;
-            pc[i] <= 0;
-            next_pc[i] <= 0;
-            current_warp <= 0;
-        end
+        warp_state[0] <= WARP_IDLE;
+        pc[0] <= 0;
+        next_pc[0] <= 0;
+        current_warp <= 0;
 
     end else if (!start_execution) begin
         if (start) begin
@@ -190,36 +185,29 @@ always @(posedge clk) begin
             // Set all warps to fetch state on start
             start_execution <= 1;
             current_warp <= 0;
-            for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-                if (i<num_warps) begin
-                    warp_state[i] = WARP_FETCH;
-                    pc[i] = kernel_config.base_instructions_address;
-                    next_pc[i] = kernel_config.base_instructions_address;
-                end else begin
-                    warp_state[i] = WARP_IDLE;
-                    pc[i] = 0;
-                    next_pc[i] = 0;
-                end
+            if (0<num_warps) begin
+                warp_state[0] = WARP_FETCH;
+                pc[0] = kernel_config.base_instructions_address;
+                next_pc[0] = kernel_config.base_instructions_address;
+            end else begin
+                warp_state[0] = WARP_IDLE;
+                pc[0] = 0;
+                next_pc[0] = 0;
             end
         end
     end else begin
         // In parallel, check if fetchers are done, and if so, move to decode
-        for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-            if (i < num_warps) begin
-                if (warp_state[i] == WARP_FETCH && fetcher_state[i] == FETCHER_DONE) begin
-                    $display("Block: %0d: Warp %0d: Fetched instruction %h at address %h", block_id, i, fetched_instruction[i], pc[i]);
-                    warp_state[i] = WARP_DECODE;
-                end
+        if (0 < num_warps) begin
+            if (warp_state[0] == WARP_FETCH && fetcher_state[0] == FETCHER_DONE) begin
+                $display("Block: %0d: Warp %0d: Fetched instruction %h at address %h", block_id, 0, fetched_instruction[0], pc[0]);
+                warp_state[0] = WARP_DECODE;
             end
         end
         all_warps_done = 1'b1;
         // If all warps are done, we are done
-        for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-            if (i<num_warps) begin
-                if (warp_state[i] != WARP_DONE) begin
-                    all_warps_done = 1'b0;
-                    break;
-                end
+        if (0<num_warps) begin
+            if (warp_state[0] != WARP_DONE) begin
+                all_warps_done = 1'b0;
             end
         end
         done <= all_warps_done;
@@ -235,24 +223,23 @@ always @(posedge clk) begin
 
             logic [WARP_INDEX_WIDTH-1:0] next_warp_candidate;
             logic found_valid_warp;
+            logic [WARP_INDEX_WIDTH-1:0] warp_index;
 
-            next_warp_candidate = (current_warp + 1) % WARPS_PER_CORE;
+            next_warp_candidate = (current_warp + 1) % 1;
             found_valid_warp = 1'b0;
 
             $display("Block: %0d: Choosing next warp", block_id);
-            for (int i = 0; i < WARPS_PER_CORE; i = i + 1) begin
-                logic [WARP_INDEX_WIDTH-1:0] warp_index;
-                warp_index = (next_warp_candidate + i) % WARPS_PER_CORE;
-                
-                // Only consider warps that are within the active range
-                if (warp_index < num_warps) begin
-                    if ((warp_state[warp_index] != WARP_IDLE) && 
-                        (warp_state[warp_index] != WARP_FETCH) && 
-                        (warp_state[warp_index] != WARP_DONE)) begin
-                        if (!found_valid_warp) begin
-                            current_warp <= warp_index;
-                            found_valid_warp = 1'b1;
-                        end
+            
+            warp_index = (next_warp_candidate + 0) % 1;
+            
+            // Only consider warps that are within the active range
+            if (warp_index < num_warps) begin
+                if ((warp_state[warp_index] != WARP_IDLE) && 
+                    (warp_state[warp_index] != WARP_FETCH) && 
+                    (warp_state[warp_index] != WARP_DONE)) begin
+                    if (!found_valid_warp) begin
+                        current_warp <= warp_index;
+                        found_valid_warp = 1'b1;
                     end
                 end
             end
@@ -380,205 +367,197 @@ always @(posedge clk) begin
 end
 
 // This block generates warp control circuitry
-generate
-for (genvar i = 0; i < WARPS_PER_CORE; i = i + 1) begin : g_warp
-    fetcher fetcher_inst(
-        .clk(clk),
-        .reset(reset),
+fetcher fetcher_inst(
+    .clk(clk),
+    .reset(reset),
 
-        .warp_state(warp_state[i]),
-        .pc(pc[i]),
+    .warp_state(warp_state[0]),
+    .pc(pc[0]),
 
-        // Instruction Memory
-        .instruction_mem_read_ready(instruction_mem_read_ready[i]),
-        .instruction_mem_read_data(instruction_mem_read_data[i]),
-        .instruction_mem_read_valid(instruction_mem_read_valid[i]),
-        .instruction_mem_read_address(instruction_mem_read_address[i]),
+    // Instruction Memory
+    .instruction_mem_read_ready(instruction_mem_read_ready[0]),
+    .instruction_mem_read_data(instruction_mem_read_data[0]),
+    .instruction_mem_read_valid(instruction_mem_read_valid[0]),
+    .instruction_mem_read_address(instruction_mem_read_address[0]),
 
-        // Fetcher output
-        .fetcher_state(fetcher_state[i]),
-        .instruction(fetched_instruction[i])
-    );
+    // Fetcher output
+    .fetcher_state(fetcher_state[0]),
+    .instruction(fetched_instruction[0])
+);
 
-    decoder decoder_inst(
-        .clk(clk),
-        .reset(reset),
-        .warp_state(warp_state[i]),
+decoder decoder_inst(
+    .clk(clk),
+    .reset(reset),
+    .warp_state(warp_state[0]),
 
-        .instruction(fetched_instruction[i]),
+    .instruction(fetched_instruction[0]),
 
-        .decoded_reg_write_enable(decoded_reg_write_enable[i]),
-        .decoded_mem_write_enable(decoded_mem_write_enable_per_warp[i]),
-        .decoded_mem_read_enable(decoded_mem_read_enable_per_warp[i]),
-        .decoded_branch(decoded_branch[i]),
-        .decoded_scalar_instruction(decoded_scalar_instruction[i]),
-        .decoded_reg_input_mux(decoded_reg_input_mux[i]),
-        .decoded_immediate(decoded_immediate[i]),
-        .decoded_rd_address(decoded_rd_address[i]),
-        .decoded_rs1_address(decoded_rs1_address[i]),
-        .decoded_rs2_address(decoded_rs2_address[i]),
-        .decoded_alu_instruction(decoded_alu_instruction[i]),
+    .decoded_reg_write_enable(decoded_reg_write_enable[0]),
+    .decoded_mem_write_enable(decoded_mem_write_enable_per_warp[0]),
+    .decoded_mem_read_enable(decoded_mem_read_enable_per_warp[0]),
+    .decoded_branch(decoded_branch[0]),
+    .decoded_scalar_instruction(decoded_scalar_instruction[0]),
+    .decoded_reg_input_mux(decoded_reg_input_mux[0]),
+    .decoded_immediate(decoded_immediate[0]),
+    .decoded_rd_address(decoded_rd_address[0]),
+    .decoded_rs1_address(decoded_rs1_address[0]),
+    .decoded_rs2_address(decoded_rs2_address[0]),
+    .decoded_alu_instruction(decoded_alu_instruction[0]),
 
-        .decoded_halt(decoded_halt[i]),
-        .floatingRead(floatingRead_flag[i]),
-        .floatingWrite(floatingWrite_flag[i])
-    );
-    // Scalar float register file
-    floating_scalar_reg_file #(
-        .DATA_WIDTH(32)
-    ) floating_scalar_reg_file_inst (
-        .clk(clk),
-        .reset(reset),
-        .enable((current_warp == i)), // Enable when current_warp matches and warp is active
+    .decoded_halt(decoded_halt[0]),
+    .floatingRead(floatingRead_flag[0]),
+    .floatingWrite(floatingWrite_flag[0])
+);
+// Scalar float register file
+floating_scalar_reg_file #(
+    .DATA_WIDTH(32)
+) floating_scalar_reg_file_inst (
+    .clk(clk),
+    .reset(reset),
+    .enable((current_warp == 0) && floatingWrite_flag[0]), // Enable when current_warp matches and warp is active
 
-        .warp_execution_mask(warp_execution_mask[i]),
+    //.warp_execution_mask(warp_execution_mask[0]),
 
-        .warp_state(warp_state[i]),
+    .warp_state(warp_state[0]),
 
-        .decoded_reg_write_enable(decoded_reg_write_enable[i] && decoded_scalar_instruction[i] && floatingWrite_flag[i]),
-        .decoded_reg_input_mux(decoded_reg_input_mux[i]),
-        .decoded_immediate(decoded_immediate[i]),
-        .decoded_rd_address(decoded_rd_address[i]),
-        .decoded_rs1_address(decoded_rs1_address[i]),
-        .decoded_rs2_address(decoded_rs2_address[i]),
+    .decoded_reg_write_enable(decoded_reg_write_enable[0] && decoded_scalar_instruction[0] && floatingWrite_flag[0]),
+    .decoded_reg_input_mux(decoded_reg_input_mux[0]),
+    .decoded_immediate(decoded_immediate[0]),
+    .decoded_rd_address(decoded_rd_address[0]),
+    .decoded_rs1_address(decoded_rs1_address[0]),
+    .decoded_rs2_address(decoded_rs2_address[0]),
 
-        .alu_out(scalar_alu_out),
-        .lsu_out(scalar_lsu_out),
-        .pc(pc[i]),
-        .vector_to_scalar_data(vector_to_scalar_data[i]),
+    .alu_out(scalar_alu_out),
+    .lsu_out(scalar_lsu_out),
+    .pc(pc[0]),
+    .vector_to_scalar_data(vector_to_scalar_data[0]),
 
-        .rs1(scalar_float_rs1[i]),
-        .rs2(scalar_float_rs2[i])
-    );
+    .rs1(scalar_float_rs1[0]),
+    .rs2(scalar_float_rs2[0])
+);
 
-    always_comb begin
-        if (current_warp == i) begin
-            //$display("Enable: ", current_warp == i);
-            //$display("Warp State: ", warp_state[i]);
-            //$display("Decoded_rs1: ", decoded_rs1_address[i]);
-            //$display("Decoded_rs2: ", decoded_rs2_address[i]);
-            //$display("ALU out", scalar_alu_out);
-            //$display("ALU out", scalar_alu_out);
-            //$display("Scalar_lsu: ", scalar_lsu_out);
-            //$display("Scalar_float_rs1: ", scalar_float_rs1[i]);
-            //$display("Scalar_float_rs2: ", scalar_float_rs2[i]);
-            //$display("Floating Write Flag", floatingWrite_flag[i]);
-        end
+always_comb begin
+    if (current_warp == 0) begin
+        //$display("Enable: ", current_warp == 0);
+        //$display("Warp State: ", warp_state[0]);
+        //$display("Decoded_rs1: ", decoded_rs1_address[0]);
+        //$display("Decoded_rs2: ", decoded_rs2_address[0]);
+        //$display("ALU out", scalar_alu_out);
+        //$display("ALU out", scalar_alu_out);
+        //$display("Scalar_lsu: ", scalar_lsu_out);
+        //$display("Scalar_float_rs1: ", scalar_float_rs1[0]);
+        //$display("Scalar_float_rs2: ", scalar_float_rs2[0]);
+        //$display("Floating Write Flag", floatingWrite_flag[0]);
     end
+end
 
-    //Scalar integer register file
-    scalar_reg_file #(
-        .DATA_WIDTH(32)
-    ) scalar_reg_file_inst (
+//Scalar integer register file
+scalar_reg_file #(
+    .DATA_WIDTH(32)
+) scalar_reg_file_inst (
+    .clk(clk),
+    .reset(reset),
+    .enable((current_warp == 0) && (!floatingWrite_flag[0] || (decoded_reg_input_mux[0] == VECTOR_TO_SCALAR))), // Enable when current_warp matches and warp is active
+
+    .warp_execution_mask(warp_execution_mask[0]),
+
+    .warp_state(warp_state[0]),
+
+    .decoded_reg_write_enable(decoded_reg_write_enable[0] && ((decoded_scalar_instruction[0] && !floatingWrite_flag[0]) ||(decoded_reg_input_mux[0] == VECTOR_TO_SCALAR))),
+    .decoded_reg_input_mux(decoded_reg_input_mux[0]),
+    .decoded_immediate(decoded_immediate[0]),
+    .decoded_rd_address(decoded_rd_address[0]),
+    .decoded_rs1_address(decoded_rs1_address[0]),
+    .decoded_rs2_address(decoded_rs2_address[0]),
+
+    .alu_out(scalar_alu_out),
+    .lsu_out(scalar_lsu_out),
+    .pc(pc[0]),
+    .vector_to_scalar_data(vector_to_scalar_data[0]),
+
+    .rs1(scalar_int_rs1[0]),
+    .rs2(scalar_int_rs2[0])
+);
+// Vector float register file
+reg_file #(
+        .THREADS_PER_WARP(THREADS_PER_WARP)
+    ) floating_reg_file_inst (
         .clk(clk),
         .reset(reset),
-        .enable((current_warp == i)), // Enable when current_warp matches and warp is active
+        .enable((current_warp == 0) && floatingWrite_flag[0]), // Enable when current_warp matches and warp is active
 
-        .warp_execution_mask(warp_execution_mask[i]),
+        // Thread enable signals (execution mask)
+        .thread_enable(warp_execution_mask[0]),
 
-        .warp_state(warp_state[i]),
+        // Warp and block identifiers
+        .warp_id(0),
+        .block_id(block_id),
+        .block_size(kernel_config.num_warps_per_block * THREADS_PER_WARP),
+        .warp_state(warp_state[0]),
 
-        .decoded_reg_write_enable(decoded_reg_write_enable[i] && ((decoded_scalar_instruction[i] && !floatingWrite_flag[i]) ||(decoded_reg_input_mux[i] == VECTOR_TO_SCALAR))),
-        .decoded_reg_input_mux(decoded_reg_input_mux[i]),
-        .decoded_immediate(decoded_immediate[i]),
-        .decoded_rd_address(decoded_rd_address[i]),
-        .decoded_rs1_address(decoded_rs1_address[i]),
-        .decoded_rs2_address(decoded_rs2_address[i]),
+        // Decoded instruction fields for this warp
+        .decoded_reg_write_enable(decoded_reg_write_enable[0] && !decoded_scalar_instruction[0] && floatingWrite_flag[0]),
+        .decoded_reg_input_mux(decoded_reg_input_mux[0]),
+        .decoded_immediate(decoded_immediate[0]),
+        .decoded_rd_address(decoded_rd_address[0]),
+        .decoded_rs1_address(decoded_rs1_address[0]),
+        .decoded_rs2_address(decoded_rs2_address[0]),
 
-        .alu_out(scalar_alu_out),
-        .lsu_out(scalar_lsu_out),
-        .pc(pc[i]),
-        .vector_to_scalar_data(vector_to_scalar_data[i]),
+        // Inputs from ALU and LSU per thread
+        .alu_out(alu_out), // ALU outputs for all threads
+        .lsu_out(lsu_out),
 
-        .rs1(scalar_int_rs1[i]),
-        .rs2(scalar_int_rs2[i])
+        // Outputs per thread
+        .rs1(vector_float_rs1[0]),
+        .rs2(vector_float_rs2[0])
     );
-    // Vector float register file
-    reg_file #(
-            .THREADS_PER_WARP(THREADS_PER_WARP)
-        ) floating_reg_file_inst (
-            .clk(clk),
-            .reset(reset),
-            .enable((current_warp == i)), // Enable when current_warp matches and warp is active
-
-            // Thread enable signals (execution mask)
-            .thread_enable(warp_execution_mask[i]),
-
-            // Warp and block identifiers
-            .warp_id(i),
-            .block_id(block_id),
-            .block_size(kernel_config.num_warps_per_block * THREADS_PER_WARP),
-            .warp_state(warp_state[i]),
-
-            // Decoded instruction fields for this warp
-            .decoded_reg_write_enable(decoded_reg_write_enable[i] && !decoded_scalar_instruction[i] && floatingWrite_flag[i]),
-            .decoded_reg_input_mux(decoded_reg_input_mux[i]),
-            .decoded_immediate(decoded_immediate[i]),
-            .decoded_rd_address(decoded_rd_address[i]),
-            .decoded_rs1_address(decoded_rs1_address[i]),
-            .decoded_rs2_address(decoded_rs2_address[i]),
-
-            // Inputs from ALU and LSU per thread
-            .alu_out(alu_out), // ALU outputs for all threads
-            .lsu_out(lsu_out),
-
-            // Outputs per thread
-            .rs1(vector_float_rs1[i]),
-            .rs2(vector_float_rs2[i])
-        );
 
 
-    // Vector integer register file
-    reg_file #(
-            .THREADS_PER_WARP(THREADS_PER_WARP)
-        ) reg_file_inst (
-            .clk(clk),
-            .reset(reset),
-            .enable((current_warp == i)), // Enable when current_warp matches and warp is active
+// Vector integer register file
+reg_file #(
+        .THREADS_PER_WARP(THREADS_PER_WARP)
+    ) reg_file_inst (
+        .clk(clk),
+        .reset(reset),
+        .enable((current_warp == 0) && !floatingWrite_flag[0]), // Enable when current_warp matches and warp is active
 
-            // Thread enable signals (execution mask)
-            .thread_enable(warp_execution_mask[i]),
+        // Thread enable signals (execution mask)
+        .thread_enable(warp_execution_mask[0]),
 
-            // Warp and block identifiers
-            .warp_id(i),
-            .block_id(block_id),
-            .block_size(kernel_config.num_warps_per_block * THREADS_PER_WARP),
-            .warp_state(warp_state[i]),
+        // Warp and block identifiers
+        .warp_id(0),
+        .block_id(block_id),
+        .block_size(kernel_config.num_warps_per_block * THREADS_PER_WARP),
+        .warp_state(warp_state[0]),
 
-            // Decoded instruction fields for this warp
-            .decoded_reg_write_enable(decoded_reg_write_enable[i] && !decoded_scalar_instruction[i] && !floatingWrite_flag[i]),
-            .decoded_reg_input_mux(decoded_reg_input_mux[i]),
-            .decoded_immediate(decoded_immediate[i]),
-            .decoded_rd_address(decoded_rd_address[i]),
-            .decoded_rs1_address(decoded_rs1_address[i]),
-            .decoded_rs2_address(decoded_rs2_address[i]),
+        // Decoded instruction fields for this warp
+        .decoded_reg_write_enable(decoded_reg_write_enable[0] && !decoded_scalar_instruction[0] && !floatingWrite_flag[0]),
+        .decoded_reg_input_mux(decoded_reg_input_mux[0]),
+        .decoded_immediate(decoded_immediate[0]),
+        .decoded_rd_address(decoded_rd_address[0]),
+        .decoded_rs1_address(decoded_rs1_address[0]),
+        .decoded_rs2_address(decoded_rs2_address[0]),
 
-            // Inputs from ALU and LSU per thread
-            .alu_out(alu_out), // ALU outputs for all threads
-            .lsu_out(lsu_out),
+        // Inputs from ALU and LSU per thread
+        .alu_out(alu_out), // ALU outputs for all threads
+        .lsu_out(lsu_out),
 
-            // Outputs per thread
-            .rs1(vector_int_rs1[i]),
-            .rs2(vector_int_rs2[i])
-        );
+        // Outputs per thread
+        .rs1(vector_int_rs1[0]),
+        .rs2(vector_int_rs2[0])
+    );
 
-    // always_comb begin
-    //     if (current_warp == i) begin
-    //         $display("Enable: ", current_warp == i);
-    //         $display("Warp State: ", warp_state[i]);
-    //         $display("Decoded_rs1: ", decoded_rs1_address[i]);
-    //         $display("Decoded_rs2: ", decoded_rs2_address[i]);
-    //         $display("Vector_lsu: ", lsu_out);
-    //         $display("Vector_int_rs1: ", vector_int_rs1[i]);
-    //         $display("Vector_int_rs2: ", vector_int_rs2[i]);
-    //     end
-    // end
-
-
-    
-end
-endgenerate
-
+// always_comb begin
+//     if (current_warp == 0) begin
+//         $display("Enable: ", current_warp == 0);
+//         $display("Warp State: ", warp_state[0]);
+//         $display("Decoded_rs1: ", decoded_rs1_address[0]);
+//         $display("Decoded_rs2: ", decoded_rs2_address[0]);
+//         $display("Vector_lsu: ", lsu_out);
+//         $display("Vector_int_rs1: ", vector_int_rs1[0]);
+//         $display("Vector_int_rs2: ", vector_int_rs2[0]);
+//     end
+// end
 
 // This block generates shared core resources (ALUs, LSUs)
 
