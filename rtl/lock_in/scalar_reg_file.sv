@@ -37,7 +37,7 @@ localparam int ZERO_REG = 0;
 localparam int EXECUTION_MASK_REG = 31;
 /* verilator lint_on UNUSED */
 
-data_t registers [32];
+(* ram_style = "block" *) data_t registers [32];
 
 always_comb begin
     warp_execution_mask = registers[EXECUTION_MASK_REG];
@@ -72,7 +72,7 @@ always @(posedge clk) begin
         for (int i = 2; i < 31; i++) begin
             registers[i] <= {DATA_WIDTH{1'b0}};
         end
-        registers[EXECUTION_MASK_REG] <= {DATA_WIDTH{1'b1}};
+        // registers[EXECUTION_MASK_REG] <= {DATA_WIDTH{1'b1}};
     end else if (enable) begin
         // if (warp_state == WARP_REQUEST) begin
         //     $display("Asynchronous read: ", rs1, rs2);
