@@ -106,7 +106,7 @@ typedef enum logic [3:0] {
     WARP_WAIT,
     WARP_EXECUTE,
     WARP_UPDATE,
-    WARP_SYNC_WAIT,
+    WARP_WRITEBACK,
     WARP_DONE
 } warp_state_t;
 
@@ -157,9 +157,9 @@ endfunction
 function automatic data_t sign_extend_16(logic[15:0] imm16);
     data_t signed_imm16;
     if (imm16[15]) begin
-        signed_imm16 = {{14{1'b1}}, imm16};
+        signed_imm16 = {{16{1'b1}}, imm16};
     end else begin
-        signed_imm16 = {{14{1'b0}}, imm16};
+        signed_imm16 = {{16{1'b0}}, imm16};
     end
     return signed_imm16;
 endfunction
