@@ -10,7 +10,7 @@ module floating_scalar_reg_file #(
     input   wire                            reset,
     input   wire                            enable, // Warp enable signal
 
-    output  data_t                          warp_execution_mask,
+    //output  data_t                          warp_execution_mask,
 
     input   warp_state_t                    warp_state,
 
@@ -39,7 +39,7 @@ localparam int EXECUTION_MASK_REG = 31;
 
 (* ram_style = "block" *) data_t registers [32];
 
-assign warp_execution_mask = registers[EXECUTION_MASK_REG];
+//assign warp_execution_mask = registers[EXECUTION_MASK_REG];
 
 // always_comb begin
 //     $display("RS1, RS2 from scalar_reg ", rs1, rs2);

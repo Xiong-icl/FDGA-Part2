@@ -419,7 +419,7 @@ floating_scalar_reg_file #(
     .reset(reset),
     .enable((current_warp == 0) && floatingWrite_flag[0]), // Enable when current_warp matches and warp is active
 
-    .warp_execution_mask(warp_execution_mask[0]),
+    //.warp_execution_mask(warp_execution_mask[0]),
 
     .warp_state(warp_state[0]),
 
@@ -569,11 +569,6 @@ data_t scalar_int_alu_result, scalar_float_alu_result;
 wire is_scalar_float_op = decoded_scalar_instruction[current_warp] && (decoded_alu_instruction[current_warp] >= FADD);
 wire is_scalar_int_op  = decoded_scalar_instruction[current_warp] && (decoded_alu_instruction[current_warp] < FADD);
 
-logic execute_stage_wants_to_advance;
-logic writeback_stage_is_ready;
-
-assign alu_enable != execute_stage_wants_to_advance || writeback_stage_is_ready;
-
 // Scalar ALU
 alu scalar_alu_inst(
     .clk(clk),
@@ -592,7 +587,8 @@ alu scalar_alu_inst(
 // Scalar Floating ALU
 floating_alu scalar_fpu_inst(
     .clk(clk),
-    rst(reset),
+    .rst(reset),
+    .valid(),
     .op1(scalar_op1),
     .op2(scalar_op2),
     .instruction(decoded_alu_instruction[current_warp]),
@@ -679,8 +675,9 @@ generate
         );
         // Vector Floating ALU
         floating_alu vector_fpu_inst(
-            .clk(clk),
-            .rst(reset),
+           .clk(clk),
+           .rst(reset),
+           .valid(),
             .op1(final_op1[i]),
             .op2(final_op2[i]),
             .instruction(decoded_alu_instruction[current_warp]),
