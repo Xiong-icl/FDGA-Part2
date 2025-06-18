@@ -100,7 +100,7 @@ int shift_amount;
 // =====================================================
 // STAGE 1: EXPONENT ALIGNMENT
 // =====================================================
-always_ff @(posedge clk or posedge rst) begin
+always_ff @(posedge clk) begin
     if (rst) begin
         s1_op1 <= 32'd0;
         s1_op2 <= 32'd0;
@@ -287,7 +287,7 @@ end
 // =====================================================
 // STAGE 3: NORMALIZATION
 // =====================================================
-always_ff @(posedge clk or posedge rst) begin
+always_ff @(posedge clk) begin
     if (rst) begin
         s3_instruction <= FADD;
         s3_valid <= 1'b0;
@@ -468,7 +468,7 @@ end
 // =====================================================
 // STAGE 4: RESULT COMPOSITION
 // =====================================================
-always_ff @(posedge clk or posedge rst) begin
+always_ff @(posedge clk) begin
     if (rst) begin
         s4_instruction <= FADD;
         s4_valid <= 1'b0;
