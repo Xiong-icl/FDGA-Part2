@@ -72,8 +72,9 @@ void initregisterMap() {
 
     // Int vector register file
     for(int i = 0; i <= 31; ++i) int_vector_registerMap["x" + to_string(i)] = i; // Placeholder for xN mapping
-    int_vector_registerMap["zero"] = 0; // Vector zero
-    for(int i = 1; i <= 31; ++i) int_vector_registerMap["v" + to_string(i)] = i;
+    int_vector_registerMap["zero"] = 0; int_vector_registerMap["ra"] = 1; int_vector_registerMap["sp"] = 2;
+    int_vector_registerMap["gp"] = 3; int_vector_registerMap["tp"] = 4; int_vector_registerMap["v0"] = 5;
+    for(int i = 1; i <= 26; ++i) int_vector_registerMap["v" + to_string(i)] = 5 + i;
 
     // Float vector register file
     for(int i = 0; i <= 31; ++i) float_vector_registerMap["f" + to_string(i)] = i; // Placeholder for fN mapping
@@ -598,9 +599,9 @@ uint32_t encodeXType(string op, const vector<string>& args) {
 int main() {
     initregisterMap();
     //ifstream input("bin/output/algotests/for/for.s"); // Example test file
-    ifstream input("assembler/sync.asm");
-    ofstream instrOut("tb/test/tmp_test/sync.hex");
-    ofstream dataOut("tb/test/tmp_test/data_sync.hex");
+    ifstream input("assembler/4threadssample.asm");
+    ofstream instrOut("tb/test/tmp_test/4threadssample.hex");
+    ofstream dataOut("tb/test/tmp_test/data_4threadssample.hex");
     vector<pair<int, string>> instructions;
     vector<pair<int, uint32_t>> data;
     string line;
