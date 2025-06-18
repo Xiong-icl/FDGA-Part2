@@ -89,6 +89,15 @@ protected:
         top->eval();
     }
 
+    void resetDUT() {
+        top->reset = 1;
+        top->block_id = 5;
+        top->warp_id = 2;
+        tick();
+        top->reset = 0;
+        top->eval();
+    }
+
     void setAllThreadEnable(bool val) {
         // --- MODIFIED ---
         if (val) {
