@@ -251,7 +251,6 @@ generate
 
         // Compute Core
         compute_core #(
-            .WARPS_PER_CORE(WARPS_PER_CORE),
             .THREADS_PER_WARP(THREADS_PER_WARP)
         ) core_instance (
             .clk(clk),

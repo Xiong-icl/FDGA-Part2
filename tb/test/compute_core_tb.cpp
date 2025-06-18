@@ -100,8 +100,8 @@ protected:
             for (int w = 0; w < WARPS_PER_CORE; ++w) {
                 if (top->instruction_mem_read_valid & (1ULL << w)) {
                     // Verilator flattens arrays: module.port[idx] -> module.port_idx
-                    uint32_t addr = top->instruction_mem_read_address[w];
-                    top->instruction_mem_read_data[w] = instr_mem.count(addr) ? instr_mem[addr] : 0;
+                    uint32_t addr = top->instruction_mem_read_address;
+                    top->instruction_mem_read_data = instr_mem.count(addr) ? instr_mem[addr] : 0;
                 }
             }
             for (int t = 0; t < NUM_LSUS; ++t) {

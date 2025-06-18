@@ -349,6 +349,15 @@ TEST_F(GpuTestbench, 4ThreadsSample) {
     EXPECT_EQ(data_mem[100], 5);
 }
 
+TEST_F(GpuTestbench, Sample) {
+    launchKernelAndWait("test/tmp_test/sample.hex", 1, 1, "", 0, 0);
+    EXPECT_EQ(data_mem[100], 5);
+    EXPECT_EQ(data_mem[16264], 16280);
+    EXPECT_EQ(data_mem[5640], 3);
+    EXPECT_EQ(data_mem[5112], 3);
+
+}
+
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
