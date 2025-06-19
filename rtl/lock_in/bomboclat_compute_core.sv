@@ -214,8 +214,8 @@ assign num_warps = kernel_config.num_warps_per_block;
 
 // Determine if a warp is ready to be scheduled
 function logic warp_is_ready(warp_id_t warp_id);
-    $display("warp_id: ", warp_id);
-    $display("warp_active[warp_id]: ", warp_active[warp_id]);
+    //$display("warp_id: ", warp_id);
+    //$display("warp_active[warp_id]: ", warp_active[warp_id]);
     return warp_active[warp_id] && 
            (warp_states[warp_id] == WARP_DECODE || 
             warp_states[warp_id] == WARP_EXECUTE || 
@@ -227,7 +227,7 @@ endfunction
 always_comb begin
     found_ready_warp = 1'b0;
     next_warp = current_warp;
-    $display("Current warp: ", current_warp);
+    //$display("Current warp: ", current_warp);
     
     // Look for next ready warp starting from current_warp + 1
     for (int i = 1; i <= MAX_WARPS; i++) begin
