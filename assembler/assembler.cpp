@@ -42,11 +42,12 @@ unordered_map<string, int> fTypeFunctMap = {
 
 unordered_map<string, int> cTypeFunctMap = {
     {"j", 0b000}, {"beqz", 0b001}, {"beqo", 0b010},
-    {"ret", 0b011}, {"sync", 0b110}, {"exit", 0b111}
+    {"ret", 0b011}, {"sync", 0b110}, {"exit", 0b111}, {"jalr", 0b100}
 };
 
 unordered_map<string, int> xTypeFunctMap = {
-    {"slt", 0b0000} // Our funct4 for sx.slt
+    {"slt", 0b0000}, // Our funct4 for sx.slt
+    {"flt", 0b0001}
 };
 
 
@@ -474,6 +475,43 @@ uint32_t encodeControl(string op, const vector<string>& args, int pc) {
         return (opcode << 29) | (imm << 13) | (funct3 << 10) | (rs1_call << 5) | rd;
 
     }
+    if (op == "jalr") {
+        // Expected syntax: jalr rd, rs1, imm
+        if (args.size() != 4) {
+            cerr << "Error: Instruction 'jalr' expects syntax: jalr rd, rs1, imm" << endl;
+            return 0;
+        }
+
+        string rd_str = args[1];
+        string rs1_str = args[2];
+        string imm_str = args[3];
+
+        // JALR is a scalar control-flow instruction.
+        if (!int_scalar_registerMap.count(rd_str)) {
+            cerr << "Error: Invalid destination register '" << rd_str << "' for jalr." << endl;
+            return 0;
+        }
+        int rd = int_scalar_registerMap.at(rd_str);
+
+        if (!int_scalar_registerMap.count(rs1_str)) {
+            cerr << "Error: Invalid base register '" << rs1_str << "' for jalr." << endl;
+            return 0;
+        }
+        int rs1 = int_scalar_registerMap.at(rs1_str);
+
+        // Resolve the immediate. The format specifies a 14-bit immediate [27:14].
+        int32_t imm_val = resolveSymbol(imm_str, labelMap);
+        uint32_t imm = static_cast<uint32_t>(imm_val) & 0x3FFF; // Mask to 14 bits
+
+        // Assemble the instruction according to the C-Type JALR format
+        // | opcode | scalar | imm[13:0] | funct3 | rs1 | rd |
+        return (opcode << 29)
+             | (1 << 28)        // Scalar bit is always 1
+             | (imm << 13)      // Place 14-bit immediate at [27:14]
+             | (funct3 << 10)
+             | (rs1 << 5)
+             | rd;
+    }
 
     if (op == "sync") {
         if (args.size() != 2) { cerr << "Error: Instruction '" << op << "' expects 1 argument (label)." << endl; return 0; }
@@ -554,6 +592,7 @@ uint32_t encodePseudoLI(const vector<string>& args, bool is_scalar) {
 
 
 // Add this new function with the other encode functions
+// Replace your existing encodeXType function with this one
 uint32_t encodeXType(string op, const vector<string>& args) {
     int opcode = 0b101; // X-Type opcode
 
@@ -563,34 +602,62 @@ uint32_t encodeXType(string op, const vector<string>& args) {
     }
     int funct4 = xTypeFunctMap.at(op);
 
-    // sx.slt rd, rs1, rs2 requires 3 register arguments
+    // All current X-type instructions expect 3 register arguments
     if (args.size() != 3) {
         cerr << "Error: Instruction 'sx." << op << "' expects 3 arguments (rd, rs1, rs2)." << endl;
         return 0;
     }
 
-    // Argument 1 (rd): The destination is a SCALAR INTEGER register
-    if (!int_scalar_registerMap.count(args[0])) {
-        cerr << "Error: Invalid destination register '" << args[0] << "' for sx." << op << ". Must be a scalar integer register (e.g., s1)." << endl;
-        return 0;
-    }
-    int rd = int_scalar_registerMap.at(args[0]);
+    int rd = 0, rs1 = 0, rs2 = 0;
 
-    // Argument 2 (rs1): The source is a VECTOR INTEGER register
-    if (!int_vector_registerMap.count(args[1])) {
-        cerr << "Error: Invalid source register '" << args[1] << "' for sx." << op << ". Must be a vector integer register (e.g., x5/v5)." << endl;
-        return 0;
-    }
-    int rs1 = int_vector_registerMap.at(args[1]);
-    
-    // Argument 3 (rs2): The source is a VECTOR INTEGER register
-    if (!int_vector_registerMap.count(args[2])) {
-        cerr << "Error: Invalid source register '" << args[2] << "' for sx." << op << ". Must be a vector integer register (e.g., x5/v5)." << endl;
-        return 0;
-    }
-    int rs2 = int_vector_registerMap.at(args[2]);
+    // --- NEW LOGIC: Determine register types based on the operation ---
+    if (op == "slt") {
+        // Destination is a SCALAR INTEGER register
+        if (!int_scalar_registerMap.count(args[0])) {
+            cerr << "Error: Invalid destination register '" << args[0] << "' for sx.slt. Must be a scalar integer register (e.g., s1)." << endl;
+            return 0;
+        }
+        rd = int_scalar_registerMap.at(args[0]);
 
+        // Sources are VECTOR INTEGER registers
+        if (!int_vector_registerMap.count(args[1])) {
+            cerr << "Error: Invalid source register '" << args[1] << "' for sx.slt. Must be a vector integer register (e.g., v5)." << endl;
+            return 0;
+        }
+        rs1 = int_vector_registerMap.at(args[1]);
+        
+        if (!int_vector_registerMap.count(args[2])) {
+            cerr << "Error: Invalid source register '" << args[2] << "' for sx.slt. Must be a vector integer register (e.g., v5)." << endl;
+            return 0;
+        }
+        rs2 = int_vector_registerMap.at(args[2]);
 
+    } else if (op == "flt") {
+        // Destination is a SCALAR FLOAT register
+        if (!int_scalar_registerMap.count(args[0])) {
+            cerr << "Error: Invalid destination register '" << args[0] << "' for sx.flt. Must be a scalar int register (e.g., s2)." << endl;
+            return 0;
+        }
+        rd = int_scalar_registerMap.at(args[0]);
+
+        // Sources are VECTOR FLOAT registers
+        if (!float_vector_registerMap.count(args[1])) {
+            cerr << "Error: Invalid source register '" << args[1] << "' for sx.flt. Must be a vector float register (e.g., fv3)." << endl;
+            return 0;
+        }
+        rs1 = float_vector_registerMap.at(args[1]);
+
+        if (!float_vector_registerMap.count(args[2])) {
+            cerr << "Error: Invalid source register '" << args[2] << "' for sx.flt. Must be a vector float register (e.g., fv4)." << endl;
+            return 0;
+        }
+        rs2 = float_vector_registerMap.at(args[2]);
+    } else {
+         cerr << "Internal Error: Register type logic not defined for X-type op '" << op << "'" << endl;
+         return 0;
+    }
+
+    // Encode using the X-Type format:
     // | 31-29  | 28-19   | 18-14 | 13-10 | 9-5   | 4-0   |
     // | OPCODE | 10(x)   | RS2   | Funct4| RS1   | RD    |
     return (opcode << 29) | (rs2 << 14) | (funct4 << 10) | (rs1 << 5) | rd;
@@ -599,9 +666,9 @@ uint32_t encodeXType(string op, const vector<string>& args) {
 int main() {
     initregisterMap();
     //ifstream input("bin/output/algotests/for/for.s"); // Example test file
-    ifstream input("assembler/sample.asm");
-    ofstream instrOut("tb/test/tmp_test/sample.hex");
-    ofstream dataOut("tb/test/tmp_test/data_sample.hex");
+    ifstream input("assembler/test.asm");
+    ofstream instrOut("tb/test/tmp_test/test.hex");
+    ofstream dataOut("tb/test/tmp_test/data_sx_flt.hex");
     vector<pair<int, string>> instructions;
     vector<pair<int, uint32_t>> data;
     string line;
@@ -706,7 +773,7 @@ int main() {
         bool is_scalar = true; // Default to scalar if no prefix? Or require prefix? Let's require prefix.
         string op;
 
-        cout << "PC 0x" << hex << pc_addr << ": " << line << " -> ";
+        // cout << "PC 0x" << hex << pc_addr << ": " << line << " -> ";
 
         if (op_with_prefix.rfind("sx.", 0) == 0) {
             op = op_with_prefix.substr(3);
@@ -768,7 +835,7 @@ int main() {
 
         tokens[0] = op; // Update token with stripped opcode (or original if no prefix)
         
-        cout << "PC 0x" << hex << pc_addr << ": " << line << " -> ";
+        // cout << "PC 0x" << hex << pc_addr << ": " << line << " -> ";
 
         // if (op == "sync") {
         //     auto it = labelMap.find("endsync");
@@ -807,7 +874,7 @@ int main() {
             continue;
         }
 
-        cout << "0x" << hex << setw(8) << setfill('0') << instr << dec << endl;
+        // cout << "0x" << hex << setw(8) << setfill('0') << instr << dec << endl;
         instrOut << hex << setw(8) << setfill('0') << instr << endl;
     }
 

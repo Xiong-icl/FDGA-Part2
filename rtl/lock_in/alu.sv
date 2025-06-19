@@ -50,11 +50,17 @@ module alu (
                 // The result is the target address: PC + offset
                 Result = pc + IMM;
             end
+            JALR: begin 
+                Result = ALUop1 + IMM;
+            end
             NEG: begin
                 Result = ~ALUop1;
             end
             default: Result = 32'b0;
         endcase
+        if (instruction == SLT)begin 
+            $display("SLT: ", Result);
+        end
     end
 
 endmodule

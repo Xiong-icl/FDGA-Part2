@@ -40,6 +40,8 @@ module decoder(
     wire [15:0]  imm_b      = {instruction[28:19], instruction[13], instruction[4:0]};
     wire [31:12] imm_u      = instruction[28:9];
     wire [25:0]  imm_j      = {instruction[28:13], instruction[9:0]};
+    wire [21:0]  imm_jalr      = {instruction[27:13]};
+    // wire [27:0]  imm_j      = {instruction[28:13], instruction[9:0], 2'b00};
 
     always @(posedge clk) begin
         // $display("Instruction: %h", instruction);
@@ -102,6 +104,18 @@ module decoder(
                         decoded_branch              <= 1;
                         decoded_alu_instruction     <= BEQO;
                         decoded_scalar_instruction  <= 1;
+                    end
+                    3'b100: begin
+                        // Jump instr
+                        decoded_alu_instruction     <= JALR;
+                        decoded_immediate           <= sign_extend_15(imm_jalr);
+                        decoded_scalar_instruction  <= 1;
+                        decoded_rs1_address         <= rs1;
+                        decoded_rd_address <= rd;
+                        decoded_reg_input_mux <= PC_PLUS_1;
+                        decoded_scalar_instruction  <= 1;
+                        floatingWrite               <= 1'b0;
+                        floatingRead                <= 2'b00;
                     end
                     3'b111: begin
                         // Exit instruction
@@ -252,16 +266,28 @@ module decoder(
                         floatingWrite <= 1'b0;
                     end
                     `OPCODE_SX_SLT: begin
+                        $display("rs1: ", rs1);
+                        $display("rs2: ", rs2);
                         decoded_rd_address          <= rd;
                         decoded_rs1_address         <= rs1;
                         decoded_rs2_address         <= rs2;
                         decoded_reg_write_enable    <= 1;
-                        decoded_reg_input_mux       <= VECTOR_TO_SCALAR;
                     
                         decoded_scalar_instruction  <= 1'b0;
 
                         unique case (funct4)
-                           4'b0000: decoded_alu_instruction <= SLT;
+                           4'b0000: begin
+                                decoded_alu_instruction <= SLT;
+                                decoded_reg_input_mux      <= VECTOR_TO_SCALAR;
+                                floatingRead <= 2'b00;
+                                floatingWrite <= 1'b0;
+                           end
+                           4'b0001: begin
+                                decoded_alu_instruction <= FSLT;
+                                decoded_reg_input_mux   <= VECTOR_TO_SCALAR;
+                                floatingRead <= 2'b11;
+                                floatingWrite <= 1'b0;
+                           end
                            default: $error("Invalid X-type instruction with funct4 %b", funct4);
                         endcase
                     end

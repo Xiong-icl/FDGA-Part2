@@ -3,7 +3,7 @@
 `include "common.svh"
 
 module reg_file #(
-    parameter int THREADS_PER_WARP = 16,
+    parameter int THREADS_PER_WARP = 4,
     parameter int DATA_WIDTH = `DATA_WIDTH
 ) (
     input   wire                            clk,
@@ -88,6 +88,8 @@ always @(posedge clk) begin
         for (int i = 0; i < THREADS_PER_WARP; i++) begin
             if (thread_enable[i]) begin
                 if (warp_state == WARP_REQUEST) begin
+                    $display("rs1[i]: ", rs1[i]);
+                    $display("rs1[i]: ", rs1[i]);
                     rs1[i] <= registers[i][decoded_rs1_address];
                     rs2[i] <= registers[i][decoded_rs2_address];
                     // $display("rs1[i]:", rs1[i]);

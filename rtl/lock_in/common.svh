@@ -93,7 +93,7 @@ typedef enum logic [4:0] {
     SEQI, // 11011
     BEQO, // 11100
     SYNC, // 11101
-    END_SYNC, // 11110
+    JALR, // 11110
     NEG // 11111
 } alu_instruction_t;
 
@@ -131,6 +131,7 @@ typedef enum logic [2:0] {
     LSU_OUT,
     IMMEDIATE,
     PC_PLUS_1,
+    PC_SRC_ALU,
     VECTOR_TO_SCALAR
 } reg_input_mux_t;
 
@@ -164,7 +165,27 @@ function automatic data_t sign_extend_16(logic[15:0] imm16);
     return signed_imm16;
 endfunction
 
+function automatic data_t sign_extend_17(logic[14:0] imm15);
+    data_t signed_imm15;
+    if (imm15[14]) begin
+        signed_imm15 = {{17{1'b1}}, imm15};
+    end else begin
+        signed_imm15 = {{17{1'b0}}, imm15};
+    end
+    return signed_imm15;
+endfunction
+
 // sign extend function for 21-bit immediate values
+// function automatic data_t sign_extend_26(logic[27:0] imm26);
+//     data_t signed_imm26;
+//     if (imm26[27]) begin
+//         signed_imm26 = {{4{1'b1}}, imm26};
+//     end else begin
+//         signed_imm26 = {{4{1'b0}}, imm26};
+//     end
+//     return signed_imm26;
+// endfunction
+
 function automatic data_t sign_extend_26(logic[25:0] imm26);
     data_t signed_imm26;
     if (imm26[25]) begin
@@ -174,5 +195,16 @@ function automatic data_t sign_extend_26(logic[25:0] imm26);
     end
     return signed_imm26;
 endfunction
+
+function automatic data_t sign_extend_21(logic[20:0] imm21);
+    data_t signed_imm21;
+    if (imm21[20]) begin
+        signed_imm21 = {{11{1'b1}}, imm21};
+    end else begin
+        signed_imm21 = {{11{1'b0}}, imm21};
+    end
+    return signed_imm21;
+endfunction
+
 
 `endif // COMMON_SV

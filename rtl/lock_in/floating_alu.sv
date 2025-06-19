@@ -253,6 +253,17 @@ always_comb begin
             result = (op1 == op2) ? 32'd1:32'd0;
         end
 
+        FSLT: begin
+            if (op1_sign_bit != op2_sign_bit) begin
+                result = op1_sign_bit;
+            end else if (op1_biased_exponent != op2_biased_exponent) begin
+                result = (op1_biased_exponent < op2_biased_exponent) ^ op1_sign_bit;
+            end else begin
+                result = (op1_significand < op2_significand) ^ op1_sign_bit;
+            end
+            $display("result: ", result);
+        end
+
         FCVT_W_S: begin // Float to int conversion (FCVT_WS)
             if (op1_biased_exponent == 8'hFF) begin
                 result = op1_sign_bit ? 32'h80000000 : 32'h7FFFFFFF;

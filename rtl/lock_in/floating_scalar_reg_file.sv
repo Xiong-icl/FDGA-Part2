@@ -26,6 +26,7 @@ module floating_scalar_reg_file #(
     input   data_t                          lsu_out,
     input   instruction_memory_address_t    pc,
     input   data_t                          vector_to_scalar_data,
+    input data_t                        vector_reduction_to_scalar_data,
 
     output  data_t                          rs1,
     output  data_t                          rs2
@@ -48,6 +49,8 @@ always_comb begin
         rs1 = (decoded_rs1_address == ZERO_REG) ? {DATA_WIDTH{1'b0}} : registers[decoded_rs1_address];
         rs2 = (decoded_rs2_address == ZERO_REG) ? {DATA_WIDTH{1'b0}} : registers[decoded_rs2_address];
     end
+    $display("reg decoded_rs1_address: ", decoded_rs1_address);
+    $display("reg decoded_rs2_address: ", decoded_rs2_address);
 end
 // always_comb begin
 //     $display("RS1, RS2 from scalar_reg ", rs1, rs2);
@@ -92,7 +95,9 @@ always @(posedge clk) begin
                         $display("Scalar Reg File: Writing vector_to_scalar_data to register %d", decoded_rd_address);
                         // $display("vector_to_scalar_data: ", vector_to_scalar_data);
                         registers[decoded_rd_address] <= vector_to_scalar_data;
+                        $display("registers[decoded_rd_address]: ", registers[decoded_rd_address]);
                     end
+                    // VECTOR_TO_SCALAR: registers[decoded_rd_address] = vector_reduction_to_scalar_data;
                     default: $error("Invalid decoded_reg_input_mux value");
                 endcase
             end

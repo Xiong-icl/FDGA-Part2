@@ -97,6 +97,12 @@ E.g.
 | -------| -------- | ------- | ------ |
 | opcode | imm[27:12] | funct3 = 000 | imm[11:2] |
 
+**jump** `jalr`
+
+| [31:29] | [28] | [27:13] | [12:10] | [9:5] | [4:0]|
+| -------| -------- | ------- | ------ | 
+|opcode| scalar | imm[14:0] (15 bits) | funct3=100 | rs1 | rd |
+
 
 **branch** `beqz rd, label`
 **Note:** The label will be calculated in assembler to give the relative PC offset addressing

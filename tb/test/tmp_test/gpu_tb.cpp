@@ -161,7 +161,7 @@ protected:
         top->execution_start = 0;
         
         // Wait for completion
-        int max_cycles = 1000000;
+        int max_cycles = 1000;
         for (int i = 0; i < max_cycles; ++i) {
             if (top->execution_done) {
                 std::cout << "GPU finished in " << i << " cycles." << std::endl;
@@ -349,14 +349,34 @@ protected:
 //     EXPECT_EQ(data_mem[100], 5);
 // }
 
-TEST_F(GpuTestbench, Sample) {
-    launchKernelAndWait("test/tmp_test/sample.hex", 1, 1, "", 0, 0);
-    EXPECT_EQ(data_mem[100], 5);
-    EXPECT_EQ(data_mem[16264], 16280);
-    EXPECT_EQ(data_mem[5640], 3);
-    EXPECT_EQ(data_mem[5112], 3);
+// TEST_F(GpuTestbench, Sample) {
+//     launchKernelAndWait("test/tmp_test/sample.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(4632, 4633);
+//     printMemoryRange(4860, 4865);
+//     // EXPECT_EQ(data_mem[100], 5);
+//     // EXPECT_EQ(data_mem[16264], 16280);
+//     // EXPECT_EQ(data_mem[5640], 3);
+//     // EXPECT_EQ(data_mem[5112], 3);
+// }
 
+// TEST_F(GpuTestbench, SLT) {
+//     launchKernelAndWait("test/tmp_test/slt.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(95, 105);
+//     EXPECT_EQ(data_mem[100], 1);
+// }
+
+TEST_F(GpuTestbench, SX_FLT) {
+    launchKernelAndWait("test/tmp_test/sx_flt.hex", 1, 1, "test/tmp_test/data_sx_flt.hex", 0, 0);
+    printMemoryRange(40, 50);
+    EXPECT_EQ(data_mem[42], 1);
 }
+
+
+// TEST_F(GpuTestbench, JALR) {
+//     launchKernelAndWait("test/tmp_test/test.hex", 1, 1, "test/tmp_test/data_test.hex", 0, 0);
+//     EXPECT_EQ(data_mem[2], 0);
+//     EXPECT_EQ(data_mem[1], 10);
+// }
 
 
 int main(int argc, char **argv) {

@@ -100,6 +100,17 @@ lsu_state_t lsu_state [THREADS_PER_WARP];
 data_t scalar_lsu_out;
 lsu_state_t scalar_lsu_state;
 data_t vector_to_scalar_data ;
+data_t vector_reduction_to_scalar_data;
+
+always_comb begin
+    vector_to_scalar_data = {`DATA_WIDTH{1'b0}};
+    for (int i = 0; i < THREADS_PER_WARP; i++) begin
+        $display("alu_out[i]: ", alu_out[i]);
+        // For SLT, the result is in the LSB. Pack these bits into the destination register.
+        vector_to_scalar_data[i] = alu_out[i][0];
+        $display("vector_to_scalar_data[i]: ", vector_to_scalar_data[i]);
+    end
+end
 
 // Operand Muxing Logic
 warp_mask_t current_warp_execution_mask;
@@ -141,7 +152,8 @@ for (genvar i = 0; i < THREADS_PER_WARP; i++) begin: g_operand_mux
             default: {vector_op1, vector_op2} = {vector_int_rs1[i], vector_int_rs2[i]};
         endcase
         // $display("Scalar flag: ", decoded_scalar_instruction);
-        // $display("Vector int rs1: ", vector_int_rs1[i]);
+        // $display("Vector float rs1: ", vector_float_rs1[i]);
+        // $display("Vector float rs2: ", vector_float_rs2[i]);
         // $display("Vector op2: ", vector_op2);
     end
 
@@ -320,12 +332,16 @@ always @(posedge clk) begin
                             next_pc <= pc + 1;
                         end
                     end else if (decoded_alu_instruction == JAL) begin
-                        next_pc <= scalar_alu_out;
+                            next_pc <= scalar_alu_out;
+
+                    end else if (decoded_alu_instruction == JALR) begin
+                            next_pc <= scalar_alu_out;
                     end else begin
                         // Other scalar instruction
-                        next_pc <= pc + 1;
-                    end
-                end else begin
+                            next_pc <= pc + 1;
+                end 
+                end
+                else begin
                     // Vector instruction
                     next_pc <= pc + 1;
                 end
@@ -343,9 +359,9 @@ always @(posedge clk) begin
                         scalar_write_value[i] <= alu_out[i];
                         $display("scalar write value: ", scalar_write_value[i]);
                     end
-                    vector_to_scalar_data <= scalar_write_value;
+                    vector_to_scalar_data = scalar_write_value;
                 end else begin
-                    vector_to_scalar_data <= {`DATA_WIDTH{1'b0}};
+                    vector_to_scalar_data = {`DATA_WIDTH{1'b0}};
                 end
             end
             
@@ -407,6 +423,11 @@ decoder decoder_inst(
     .floatingRead(floatingRead_flag),
     .floatingWrite(floatingWrite_flag)
 );
+always_comb begin 
+    $display("decoded_rs1_address: ", decoded_rs1_address);
+    $display("decoded_rs2_address: ", decoded_rs2_address);
+end
+
 // Scalar float register file
 floating_scalar_reg_file #(
     .DATA_WIDTH(32)
@@ -652,7 +673,11 @@ generate
        
         data_t vector_int_alu_result, vector_float_alu_result;
         logic is_float_op;
-
+        always_comb begin
+            $display("vector_float_alu_result: ", vector_float_alu_result);
+            // $display("final_op2[i]: ", final_op2[i]);
+            $display("alu_out[i]: ", alu_out[i]);
+        end
         // Vector ALU
         alu vector_alu_inst(
             .pc(pc),
@@ -674,7 +699,12 @@ generate
             // .EQ() // unused
         );
 
-        assign alu_out[i] = (decoded_alu_instruction >= FADD) ? vector_float_alu_result : vector_int_alu_result;
+        logic more_fadd;
+        assign more_fadd = (decoded_alu_instruction >= FADD);
+        logic less_beqz;
+        assign less_beqz = (decoded_alu_instruction < BEQZ);
+
+        assign alu_out[i] = (more_fadd & less_beqz) ? vector_float_alu_result : vector_int_alu_result;
         
 
          always_comb begin
