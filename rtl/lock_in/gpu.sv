@@ -7,7 +7,7 @@ module gpu #(
     parameter int INSTRUCTION_MEM_NUM_CHANNELS /*verilator public*/ = 8,     // Number of concurrent channels for sending requests to data memory
     parameter int NUM_CORES /*verilator public*/ = 1,                 // Number of cores to include in this GPU
     parameter int WARPS_PER_CORE /*verilator public*/ = 1,            // Number of warps to in each core
-    parameter int THREADS_PER_WARP /*verilator public*/ = 16          // Number of threads per warp (max 32)
+    parameter int THREADS_PER_WARP /*verilator public*/ = 4          // Number of threads per warp (max 32)
 ) (
     input wire clk,
     input wire reset,
@@ -247,7 +247,7 @@ generate
             end
         end
 
-        localparam fetcher_index = i * WARPS_PER_CORE;
+        localparam fetcher_index = i;
 
         // Compute Core
         compute_core #(
@@ -262,10 +262,10 @@ generate
             .block_id(core_block_id[i]),
             .kernel_config(kernel_config_reg),
 
-            .instruction_mem_read_valid(fetcher_read_valid[fetcher_index +: WARPS_PER_CORE]),
-            .instruction_mem_read_address(fetcher_read_address[fetcher_index +: WARPS_PER_CORE]),
-            .instruction_mem_read_ready(fetcher_read_ready[fetcher_index +: WARPS_PER_CORE]),
-            .instruction_mem_read_data(fetcher_read_data[fetcher_index +: WARPS_PER_CORE]),
+            .instruction_mem_read_valid(fetcher_read_valid[i]),
+            .instruction_mem_read_address(fetcher_read_address[i]),
+            .instruction_mem_read_ready(fetcher_read_ready[i]),
+            .instruction_mem_read_data(fetcher_read_data[i]),
 
             .data_mem_read_valid(core_lsu_read_valid),
             .data_mem_read_address(core_lsu_read_address),

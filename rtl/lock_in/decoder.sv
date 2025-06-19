@@ -136,6 +136,7 @@ module decoder(
                             4'b0111: decoded_alu_instruction <= SNEZ;
                             4'b1000: decoded_alu_instruction <= MIN;
                             4'b1001: decoded_alu_instruction <= ABS;
+                            4'b1011: decoded_alu_instruction <= NEG;
                             default: $error("Invalid R-type instruction with funct4 %b", funct4);
                         endcase
                     end

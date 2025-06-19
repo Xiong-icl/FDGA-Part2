@@ -283,7 +283,7 @@ v.li v8, 620
 v.sub v7, v8, v7
 v.add v7, v7, sp
 v.flw fv2, 0(v7)
-sx.flt.s s26, fv1, fv2
+sx.slt.s s26, fv1, fv2
 v.li v7, 1
 v.add v7, v7, v6
 v.slli v7, v7, 2
@@ -339,7 +339,7 @@ v.li v8, 188
 v.sub v7, v8, v7
 v.add v7, v7, sp
 v.flw fv2, 0(v7)
-sx.flt.s s26, fv1, fv2
+sx.slt.s s26, fv1, fv2
 v.li v7, 1
 v.add v7, v7, v6
 v.slli v7, v7, 2

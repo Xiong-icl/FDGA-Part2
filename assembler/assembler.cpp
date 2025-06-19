@@ -25,7 +25,7 @@ unordered_map<string, int> rTypeFunctMap = {
     {"add", 0b0000}, {"sub", 0b0001}, {"mul", 0b0010},
     {"div", 0b0011}, {"slt", 0b0100}, {"sll", 0b0101},
     {"seq", 0b0110}, {"snez", 0b0111}, {"min", 0b1000},
-    {"abs", 0b1001}
+    {"abs", 0b1001}, {"neg", 0b1011}
 };
 
 unordered_map<string, int> iTypeFunctMap = {
@@ -78,8 +78,8 @@ void initregisterMap() {
 
     // Float vector register file
     for(int i = 0; i <= 31; ++i) float_vector_registerMap["f" + to_string(i)] = i; // Placeholder for fN mapping
-    float_vector_registerMap["zero"] = 0; // Vector zero
-    for(int i = 1; i <= 31; ++i) float_vector_registerMap["fv" + to_string(i)] = i;
+    // float_vector_registerMap["zero"] = 0; // Vector zero
+    for(int i = 0; i <= 31; ++i) float_vector_registerMap["fv" + to_string(i)] = i;
     
 }
 

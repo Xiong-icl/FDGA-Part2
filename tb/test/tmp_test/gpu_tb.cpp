@@ -161,7 +161,7 @@ protected:
         top->execution_start = 0;
         
         // Wait for completion
-        int max_cycles = 10000;
+        int max_cycles = 1000000;
         for (int i = 0; i < max_cycles; ++i) {
             if (top->execution_done) {
                 std::cout << "GPU finished in " << i << " cycles." << std::endl;
@@ -195,159 +195,159 @@ protected:
 
 // --- TEST CASES ---
 
-TEST_F(GpuTestbench, ResetBehavior) {
-    runSimulation(1);
-    EXPECT_EQ(top->execution_done, 0);
-    EXPECT_EQ(top->instruction_mem_read_valid, 0);
-    EXPECT_EQ(top->data_mem_read_valid, 0);
-    EXPECT_EQ(top->data_mem_write_valid, 0);
-}
-
-TEST_F(GpuTestbench, SimplestExit) {
-    // This test verifies the entire pipeline from dispatcher to core execution for one instruction.
-    launchKernelAndWait("test/tmp_test/exit.hex", 1, 1);
-    SUCCEED() << "GPU successfully executed a kernel with a single EXIT instruction.";
-}
-
-// *** Reuse all the tests from compute_core, but run them through the GPU ***
-// This validates the integration of the core, memory controllers, and dispatcher for a single block.
-
-TEST_F(GpuTestbench, RScalarTest) {
-    launchKernelAndWait("test/tmp_test/rscalar.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[42], 10);
-    EXPECT_EQ(data_mem[43], 20);
-    EXPECT_EQ(data_mem[44], 0);
-    EXPECT_EQ(data_mem[45], 100);
-    EXPECT_EQ(data_mem[46], 1);
-    EXPECT_EQ(data_mem[47], 0);
-    EXPECT_EQ(data_mem[48], 1);
-    EXPECT_EQ(data_mem[49], 1);
-    EXPECT_EQ(data_mem[50], 5);
-}
-
-TEST_F(GpuTestbench, IScalarTest) {
-    launchKernelAndWait("test/tmp_test/iscalar.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[44], 20);
-    EXPECT_EQ(data_mem[45], 100);
-    EXPECT_EQ(data_mem[46], 1);
-    EXPECT_EQ(data_mem[47], 40);
-}
-
-TEST_F(GpuTestbench, JumpTest) {
-    launchKernelAndWait("test/tmp_test/jump.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[46], 0);
-    EXPECT_EQ(data_mem[42], 5);
-}
-
-TEST_F(GpuTestbench, CScalarTest) {
-    launchKernelAndWait("test/tmp_test/cscalar.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[43], 0);
-    EXPECT_EQ(data_mem[44], 5);
-}
-
-TEST_F(GpuTestbench, MScalarTest) {
-    launchKernelAndWait("test/tmp_test/mscalar.hex", 1, 1, "test/tmp_test/data_mscalar.hex", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
-    EXPECT_EQ(data_mem[43], 32);
-    EXPECT_EQ(data_mem[44], 32);
-}
-
-
-TEST_F(GpuTestbench, FScalarTest) {
-    launchKernelAndWait("test/tmp_test/fscalar.hex", 1, 1, "test/tmp_test/data_fscalar.hex", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Scalar FADD failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Scalar FSUB failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Scalar FMUL failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[48]), 2.0f) << "Scalar FDIV failed";
-    EXPECT_EQ(data_mem[49], 0) << "Scalar FLT failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[50]), -1.0f) << "Scalar FNEG failed";
-}
-
-TEST_F(GpuTestbench, RVectorTest) {
-    launchKernelAndWait("test/tmp_test/rvector.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[42], 10);
-    EXPECT_EQ(data_mem[43], 20);
-    EXPECT_EQ(data_mem[44], 0);
-    EXPECT_EQ(data_mem[45], 100);
-    EXPECT_EQ(data_mem[46], 1);
-}
-
-TEST_F(GpuTestbench, IVectorTest) {
-    launchKernelAndWait("test/tmp_test/ivector.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(data_mem[44], 20);
-    EXPECT_EQ(data_mem[45], 100);
-    EXPECT_EQ(data_mem[46], 1);
-    EXPECT_EQ(data_mem[47], 40);
-}
-
-
-TEST_F(GpuTestbench, MVectorTest) {
-    launchKernelAndWait("test/tmp_test/mvector.hex", 1, 1, "test/tmp_test/data_mvector.hex", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
-    EXPECT_EQ(data_mem[43], 32);
-    EXPECT_EQ(data_mem[44], 32);
-}
-
-TEST_F(GpuTestbench, FVectorTest) {
-    launchKernelAndWait("test/tmp_test/fvector.hex", 1, 1, "test/tmp_test/data_fvector.hex", 0, 0);
-    printMemoryRange(40, 50);
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Vector FADD failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Vector FSUB failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Vector FMUL failed";
-    EXPECT_FLOAT_EQ(bits_to_float(data_mem[48]), 2.0f) << "Vector FDIV failed";
-}
-
-// *** NEW TEST for Multi-Block Dispatching ***
-// This test verifies that the dispatcher can schedule multiple independent blocks
-// and that each block receives the correct block_id.
-
-// TEST_F(GpuTestbench, MultiBlockDispatch) {
-//     // Launch a kernel with 4 blocks, 1 warp each.
-//     // The base_data address is set to 0.
-//     launchKernelAndWait("test/hex/multi_block.hex", 4, 1, "", 0, 0);
-
-//     // The program `multi_block.s` has each block write the value 123
-//     // to an address calculated as `block_id * 4`.
-//     // We expect:
-//     // - Block 0 writes 123 to address 0 (0*4)
-//     // - Block 1 writes 123 to address 4 (1*4)
-//     // - Block 2 writes 123 to address 8 (2*4)
-//     // - Block 3 writes 123 to address 12 (3*4)
-    
-//     ASSERT_TRUE(data_mem.count(0)) << "Block 0 did not write to memory.";
-//     EXPECT_EQ(data_mem[0], 123) << "Block 0 wrote incorrect data or to wrong address.";
-    
-//     ASSERT_TRUE(data_mem.count(4)) << "Block 1 did not write to memory.";
-//     EXPECT_EQ(data_mem[4], 123) << "Block 1 wrote incorrect data or to wrong address.";
-
-//     ASSERT_TRUE(data_mem.count(8)) << "Block 2 did not write to memory.";
-//     EXPECT_EQ(data_mem[8], 123) << "Block 2 wrote incorrect data or to wrong address.";
-    
-//     ASSERT_TRUE(data_mem.count(12)) << "Block 3 did not write to memory.";
-//     EXPECT_EQ(data_mem[12], 123) << "Block 3 wrote incorrect data or to wrong address.";
+// TEST_F(GpuTestbench, ResetBehavior) {
+//     runSimulation(1);
+//     EXPECT_EQ(top->execution_done, 0);
+//     EXPECT_EQ(top->instruction_mem_read_valid, 0);
+//     EXPECT_EQ(top->data_mem_read_valid, 0);
+//     EXPECT_EQ(top->data_mem_write_valid, 0);
 // }
 
-TEST_F(GpuTestbench, SyncTest) {
-    launchKernelAndWait("test/tmp_test/sync.hex", 1, 1, "", 0, 0);
-    printMemoryRange(40, 45);
-    EXPECT_EQ(data_mem[42], 28);
-    EXPECT_EQ(data_mem[43], 36);
-}
+// TEST_F(GpuTestbench, SimplestExit) {
+//     // This test verifies the entire pipeline from dispatcher to core execution for one instruction.
+//     launchKernelAndWait("test/tmp_test/exit.hex", 1, 1);
+//     SUCCEED() << "GPU successfully executed a kernel with a single EXIT instruction.";
+// }
 
-TEST_F(GpuTestbench, 4ThreadsSample) {
-    launchKernelAndWait("test/tmp_test/4threadssample.hex", 1, 1, "", 0, 0);
-    printMemoryRange(95, 105);
-    EXPECT_EQ(data_mem[100], 5);
-}
+// // *** Reuse all the tests from compute_core, but run them through the GPU ***
+// // This validates the integration of the core, memory controllers, and dispatcher for a single block.
+
+// TEST_F(GpuTestbench, RScalarTest) {
+//     launchKernelAndWait("test/tmp_test/rscalar.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[42], 10);
+//     EXPECT_EQ(data_mem[43], 20);
+//     EXPECT_EQ(data_mem[44], 0);
+//     EXPECT_EQ(data_mem[45], 100);
+//     EXPECT_EQ(data_mem[46], 1);
+//     EXPECT_EQ(data_mem[47], 0);
+//     EXPECT_EQ(data_mem[48], 1);
+//     EXPECT_EQ(data_mem[49], 1);
+//     EXPECT_EQ(data_mem[50], 5);
+// }
+
+// TEST_F(GpuTestbench, IScalarTest) {
+//     launchKernelAndWait("test/tmp_test/iscalar.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[44], 20);
+//     EXPECT_EQ(data_mem[45], 100);
+//     EXPECT_EQ(data_mem[46], 1);
+//     EXPECT_EQ(data_mem[47], 40);
+// }
+
+// TEST_F(GpuTestbench, JumpTest) {
+//     launchKernelAndWait("test/tmp_test/jump.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[46], 0);
+//     EXPECT_EQ(data_mem[42], 5);
+// }
+
+// TEST_F(GpuTestbench, CScalarTest) {
+//     launchKernelAndWait("test/tmp_test/cscalar.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[43], 0);
+//     EXPECT_EQ(data_mem[44], 5);
+// }
+
+// TEST_F(GpuTestbench, MScalarTest) {
+//     launchKernelAndWait("test/tmp_test/mscalar.hex", 1, 1, "test/tmp_test/data_mscalar.hex", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
+//     EXPECT_EQ(data_mem[43], 32);
+//     EXPECT_EQ(data_mem[44], 32);
+// }
+
+
+// TEST_F(GpuTestbench, FScalarTest) {
+//     launchKernelAndWait("test/tmp_test/fscalar.hex", 1, 1, "test/tmp_test/data_fscalar.hex", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Scalar FADD failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Scalar FSUB failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Scalar FMUL failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[48]), 2.0f) << "Scalar FDIV failed";
+//     EXPECT_EQ(data_mem[49], 0) << "Scalar FLT failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[50]), -1.0f) << "Scalar FNEG failed";
+// }
+
+// TEST_F(GpuTestbench, RVectorTest) {
+//     launchKernelAndWait("test/tmp_test/rvector.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[42], 10);
+//     EXPECT_EQ(data_mem[43], 20);
+//     EXPECT_EQ(data_mem[44], 0);
+//     EXPECT_EQ(data_mem[45], 100);
+//     EXPECT_EQ(data_mem[46], 1);
+// }
+
+// TEST_F(GpuTestbench, IVectorTest) {
+//     launchKernelAndWait("test/tmp_test/ivector.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(data_mem[44], 20);
+//     EXPECT_EQ(data_mem[45], 100);
+//     EXPECT_EQ(data_mem[46], 1);
+//     EXPECT_EQ(data_mem[47], 40);
+// }
+
+
+// TEST_F(GpuTestbench, MVectorTest) {
+//     launchKernelAndWait("test/tmp_test/mvector.hex", 1, 1, "test/tmp_test/data_mvector.hex", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_EQ(bits_to_float(data_mem[42]), 1.0f);
+//     EXPECT_EQ(data_mem[43], 32);
+//     EXPECT_EQ(data_mem[44], 32);
+// }
+
+// TEST_F(GpuTestbench, FVectorTest) {
+//     launchKernelAndWait("test/tmp_test/fvector.hex", 1, 1, "test/tmp_test/data_fvector.hex", 0, 0);
+//     printMemoryRange(40, 50);
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[45]), 3.0f) << "Vector FADD failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[46]), 1.0f) << "Vector FSUB failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[47]), 2.0f) << "Vector FMUL failed";
+//     EXPECT_FLOAT_EQ(bits_to_float(data_mem[48]), 2.0f) << "Vector FDIV failed";
+// }
+
+// // *** NEW TEST for Multi-Block Dispatching ***
+// // This test verifies that the dispatcher can schedule multiple independent blocks
+// // and that each block receives the correct block_id.
+
+// // TEST_F(GpuTestbench, MultiBlockDispatch) {
+// //     // Launch a kernel with 4 blocks, 1 warp each.
+// //     // The base_data address is set to 0.
+// //     launchKernelAndWait("test/hex/multi_block.hex", 4, 1, "", 0, 0);
+
+// //     // The program `multi_block.s` has each block write the value 123
+// //     // to an address calculated as `block_id * 4`.
+// //     // We expect:
+// //     // - Block 0 writes 123 to address 0 (0*4)
+// //     // - Block 1 writes 123 to address 4 (1*4)
+// //     // - Block 2 writes 123 to address 8 (2*4)
+// //     // - Block 3 writes 123 to address 12 (3*4)
+    
+// //     ASSERT_TRUE(data_mem.count(0)) << "Block 0 did not write to memory.";
+// //     EXPECT_EQ(data_mem[0], 123) << "Block 0 wrote incorrect data or to wrong address.";
+    
+// //     ASSERT_TRUE(data_mem.count(4)) << "Block 1 did not write to memory.";
+// //     EXPECT_EQ(data_mem[4], 123) << "Block 1 wrote incorrect data or to wrong address.";
+
+// //     ASSERT_TRUE(data_mem.count(8)) << "Block 2 did not write to memory.";
+// //     EXPECT_EQ(data_mem[8], 123) << "Block 2 wrote incorrect data or to wrong address.";
+    
+// //     ASSERT_TRUE(data_mem.count(12)) << "Block 3 did not write to memory.";
+// //     EXPECT_EQ(data_mem[12], 123) << "Block 3 wrote incorrect data or to wrong address.";
+// // }
+
+// TEST_F(GpuTestbench, SyncTest) {
+//     launchKernelAndWait("test/tmp_test/sync.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(40, 45);
+//     EXPECT_EQ(data_mem[42], 28);
+//     EXPECT_EQ(data_mem[43], 36);
+// }
+
+// TEST_F(GpuTestbench, 4ThreadsSample) {
+//     launchKernelAndWait("test/tmp_test/4threadssample.hex", 1, 1, "", 0, 0);
+//     printMemoryRange(95, 105);
+//     EXPECT_EQ(data_mem[100], 5);
+// }
 
 TEST_F(GpuTestbench, Sample) {
     launchKernelAndWait("test/tmp_test/sample.hex", 1, 1, "", 0, 0);

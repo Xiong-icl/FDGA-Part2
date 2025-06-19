@@ -21,6 +21,7 @@
 #define BEQZ        25
 #define JAL        26
 #define BEQ0        28
+#define NEG        31
 
 // Base class for testing the sequential ALU
 class ALUTestbench : public BaseTestbench {
@@ -216,4 +217,12 @@ TEST_F(ALUTestbench, BEQ0_ConditionFalse) {
     run_operation(BEQ0, op1_not_zero, 1);
 
     EXPECT_EQ(top->Result, 0) << "Result should be 0 when condition is false";
+}
+
+TEST_F(ALUTestbench, NEG) {
+    resetDUT();
+    int32_t offset = 1;
+    run_operation(NEG, offset, 1);
+
+    EXPECT_EQ(top->Result, 0xfffffffe) << "Result should be 0 when condition is false";
 }
