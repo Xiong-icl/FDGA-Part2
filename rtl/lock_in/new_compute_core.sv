@@ -91,7 +91,7 @@ data_t vector_float_rs2 [THREADS_PER_WARP];
 warp_mask_t warp_execution_mask ;
 
 logic all_warps_done = 1'b1;
-logic any_lsu_waiting;
+logic any_lsu_waiting; !
 
 // ALU/LSU Operands and Results
 data_t final_op1 [THREADS_PER_WARP];
@@ -159,6 +159,21 @@ always_comb begin
     if (0 < num_warps) begin
         if (warp_state != WARP_DONE) begin
             all_warps_done = 1'b0;
+        end
+    end
+end
+
+always_ff @(posedge clk) begin
+    if (!reset && start_execution) begin
+        // Print warp states periodically for debugging
+        if (cycle_count % 100 == 0) begin
+            $display("=== Warp Status at cycle %0d ===", cycle_count);
+            for (int i = 0; i < num_warps; i++) begin
+                $display("Warp %0d: active=%0b, state=%0d, PC=%h", 
+                         i, warp_active[i], warp_states[i], warp_pc[i]);
+            end
+            $display("Current warp: %0d", current_warp);
+            $display("================================");
         end
     end
 end

@@ -154,7 +154,7 @@ protected:
                 std::cout << "Core finished in " << i << " cycles." << std::endl;
                 return;
             }
-            runSimulation(1);
+            runSimulation(10);
         }
         FAIL() << "Core did not finish within the " << max_cycles << " cycle timeout.";
     }

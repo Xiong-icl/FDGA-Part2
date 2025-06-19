@@ -64,7 +64,6 @@ protected:
         top->reset = 1;
         top->enable = 0;
 
-        // --- MODIFIED ---
         top->thread_enable = 0; // Clear all bits
 
         for (int i = 0; i < THREADS_PER_WARP; ++i) {
@@ -89,26 +88,21 @@ protected:
         top->eval();
     }
 
-    void resetDUT() {
+    void resetDUT(uint32_t warp_id_val, uint32_t block_id_val, uint32_t block_size_val) {
+        // Set the desired values BEFORE pulsing reset
+        top->warp_id = warp_id_val;
+        top->block_id = block_id_val;
+        top->block_size = block_size_val;
+
+        // Now, pulse the reset signal
         top->reset = 1;
-        top->block_id = 5;
-        top->warp_id = 2;
-        tick();
+        runSimulation(2); // Let the reset take effect over a couple of cycles
         top->reset = 0;
-        top->eval();
+        runSimulation(1); // One more cycle to ensure we are cleanly out of reset state
     }
 
     void setAllThreadEnable(bool val) {
-        // --- MODIFIED ---
-        if (val) {
-            if (THREADS_PER_WARP == 32) { // Special case for full 32-bit mask
-                 top->thread_enable = 0xFFFFFFFFU;
-            } else {
-                 top->thread_enable = (1U << THREADS_PER_WARP) - 1; // Set all bits up to THREADS_PER_WARP
-            }
-        } else {
-            top->thread_enable = 0; // Clear all bits
-        }
+        top->thread_enable = val ? ((1ULL << THREADS_PER_WARP) - 1) : 0;
     }
 
 public:
@@ -125,39 +119,53 @@ TEST_F(RegFileTestbench, ResetAndSpecialRegisterRead) {
     uint32_t test_warp_id = 2;
     uint32_t test_block_id = 5;
     uint32_t test_block_size = 256;
-    top->warp_id = test_warp_id;
-    top->block_id = test_block_id;
-    top->block_size = test_block_size;
 
-    runSimulation(1);
+    resetDUT(test_warp_id, test_block_id, test_block_size);
 
+    // --- VERIFICATION: Now proceed with the read tests ---
+    top->enable = 1;
+    setAllThreadEnable(true);
+    top->warp_state = static_cast<uint8_t>(WarpState::REQUEST);
+    runSimulation(1); // Let enables settle
+
+
+    // Check ZERO_REG
     top->decoded_rs1_address = ZERO_REG;
-    runSimulation(1);
+    runSimulation(1); // Cycle 1: Latch address
+    runSimulation(1); // Cycle 2: Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         EXPECT_EQ(top->rs1[i], 0) << "Thread " << i << ", ZERO_REG value mismatch.";
     }
 
+    // Check THREAD_ID_REG
     top->decoded_rs1_address = THREAD_ID_REG;
-    runSimulation(1);
+    runSimulation(1); // Cycle 1: Latch address
+    runSimulation(1); // Cycle 2: Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         EXPECT_EQ(top->rs1[i], getExpectedThreadId(test_warp_id, i))
             << "Thread " << i << ", THREAD_ID_REG value mismatch.";
     }
 
+    // Check BLOCK_ID_REG
     top->decoded_rs1_address = BLOCK_ID_REG;
-    runSimulation(1);
+    runSimulation(1); // Latch address
+    runSimulation(1); // Data appears
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         EXPECT_EQ(top->rs1[i], test_block_id) << "Thread " << i << ", BLOCK_ID_REG value mismatch.";
     }
 
+    // Check BLOCK_SIZE_REG
     top->decoded_rs1_address = BLOCK_SIZE_REG;
-    runSimulation(1);
+    runSimulation(1); // Latch address
+    runSimulation(1); // Data appears
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         EXPECT_EQ(top->rs1[i], test_block_size) << "Thread " << i << ", BLOCK_SIZE_REG value mismatch.";
     }
 
+    // Check a general purpose register after reset
     top->decoded_rs1_address = 4;
-    runSimulation(1);
+    runSimulation(1); // Latch address
+    runSimulation(1); // Data appears
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         EXPECT_EQ(top->rs1[i], 0) << "Thread " << i << ", R4 (GP reg) after reset mismatch.";
     }
@@ -247,67 +255,63 @@ TEST_F(RegFileTestbench, ThreadEnableMasking) {
 }
 
 TEST_F(RegFileTestbench, WriteToSpecialRegisters) {
+    // --- SETUP: Define the initial values and properly reset the DUT with them ---
+    uint32_t WID = 3;
+    uint32_t BID = 7;
+    uint32_t BSZ = 64;
+    resetDUT(WID, BID, BSZ); // Use the helper to initialize special registers correctly.
+
+    // --- ACTION: Attempt to write a new value to the special registers ---
+    // This action should be IGNORED by the hardware's write-protection logic.
     top->enable = 1;
-
-    // --- MODIFIED ---
-    top->thread_enable = (1U << 0); // Enable only thread 0
-
-    uint32_t WID = 3; top->warp_id = WID;
-    uint32_t BID = 7; top->block_id = BID;
-    uint32_t BSZ = 64; top->block_size = BSZ;
-    runSimulation(1);
-
-    uint32_t attempt_write_value = 0xDEADBEEF;
-
+    top->thread_enable = (1U << 0); // Enable only thread 0 for the write attempt
     top->warp_state = static_cast<uint8_t>(WarpState::UPDATE);
     top->decoded_reg_write_enable = 1;
-    top->decoded_reg_input_mux = 0b010;
-    top->decoded_immediate = attempt_write_value;
+    top->decoded_reg_input_mux = static_cast<uint8_t>(RegInputMux::IMMEDIATE); // Write from immediate
+    top->decoded_immediate = 0xDEADBEEF; // The value we are trying to write
 
-    top->decoded_rd_address = ZERO_REG; runSimulation(1);
-    top->decoded_rd_address = THREAD_ID_REG; runSimulation(1);
-    top->decoded_rd_address = BLOCK_ID_REG; runSimulation(1);
+    // Cycle through write attempts to each special register
+    top->decoded_rd_address = ZERO_REG;       runSimulation(1);
+    top->decoded_rd_address = THREAD_ID_REG;  runSimulation(1);
+    top->decoded_rd_address = BLOCK_ID_REG;   runSimulation(1);
     top->decoded_rd_address = BLOCK_SIZE_REG; runSimulation(1);
 
-    setAllThreadEnable(true);
+    // --- VERIFICATION: Read back from the registers and confirm they were NOT modified ---
+    setAllThreadEnable(true); // Enable all threads for reading
     top->warp_state = static_cast<uint8_t>(WarpState::REQUEST);
-    top->decoded_reg_write_enable = 0;
+    top->decoded_reg_write_enable = 0; // Disable writes for the read phase
 
+    // Check ZERO_REG (should always be 0)
     top->decoded_rs1_address = ZERO_REG;
-    runSimulation(1);
+    runSimulation(1); // Cycle 1: Latch read address
+    runSimulation(1); // Cycle 2: Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
-        EXPECT_EQ(top->rs1[i], 0) << "Thread " << i << " ZERO_REG value check.";
+        EXPECT_EQ(top->rs1[i], 0) << "Thread " << i << " ZERO_REG should never be writable.";
     }
 
+    // Check THREAD_ID_REG (should hold original reset value)
     top->decoded_rs1_address = THREAD_ID_REG;
-    runSimulation(1);
+    runSimulation(1); // Latch read address
+    runSimulation(1); // Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
         uint32_t expected_tid = getExpectedThreadId(WID, i);
-        // if (i == 0) { // Thread 0 was enabled during the write to THREAD_ID_REG
-        //     EXPECT_EQ(top->rs1[i], attempt_write_value) << "Thread " << i << " THREAD_ID_REG (written) check.";
-        // } else {
-            EXPECT_EQ(top->rs1[i], expected_tid) << "Thread " << i << " THREAD_ID_REG (original) check.";
-        // }
+        EXPECT_EQ(top->rs1[i], expected_tid) << "Thread " << i << " THREAD_ID_REG should not be writable.";
     }
 
+    // Check BLOCK_ID_REG (should hold original reset value)
     top->decoded_rs1_address = BLOCK_ID_REG;
-    runSimulation(1);
+    runSimulation(1); // Latch read address
+    runSimulation(1); // Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
-        //  if (i == 0) {
-        //     EXPECT_EQ(top->rs1[i], attempt_write_value) << "Thread " << i << " BLOCK_ID_REG (written) check.";
-        // } else {
-            EXPECT_EQ(top->rs1[i], BID) << "Thread " << i << " BLOCK_ID_REG (original) check.";
-        // }
+        EXPECT_EQ(top->rs1[i], BID) << "Thread " << i << " BLOCK_ID_REG should not be writable.";
     }
 
+    // Check BLOCK_SIZE_REG (should hold original reset value)
     top->decoded_rs1_address = BLOCK_SIZE_REG;
-    runSimulation(1);
+    runSimulation(1); // Latch read address
+    runSimulation(1); // Data appears on output
     for (int i = 0; i < THREADS_PER_WARP; ++i) {
-        // if (i == 0) {
-        //     EXPECT_EQ(top->rs1[i], attempt_write_value) << "Thread " << i << " BLOCK_SIZE_REG (written) check.";
-        // } else {
-            EXPECT_EQ(top->rs1[i], BSZ) << "Thread " << i << " BLOCK_SIZE_REG (original) check.";
-        // }
+        EXPECT_EQ(top->rs1[i], BSZ) << "Thread " << i << " BLOCK_SIZE_REG should not be writable.";
     }
 }
 

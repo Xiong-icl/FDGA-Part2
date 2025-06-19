@@ -89,6 +89,7 @@ module alu (
             // likely FAIL timing, even in this pipelined structure. For a real
             // FPGA design, you MUST replace this with a dedicated multi-cycle
             // Divider IP Core from the Vivado IP Catalog.
+            NEG:  Result_next = ~ALUop1_s1;
             DIV:  Result_next = ALUop1_s1 / ALUop2_s1;
             DIVI: Result_next = ALUop1_s1 / IMM_s1;
 

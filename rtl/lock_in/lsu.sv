@@ -1,30 +1,21 @@
-
 `timescale 1ns/1ns
-
 `include "common.svh"
 
-// LOAD-STORE UNIT
-// > Handles asynchronous memory load and store operations and waits for response
-// > Each thread in each core has it's own LSU
-// > LDR, STR instructions are executed here
 module lsu (
     input wire clk,
     input wire reset,
-    input wire enable, // If current block has less threads then block size, some LSUs will be inactive
+    input wire enable, // Main enable for this LSU instance
 
-    // State
-    input warp_state_t warp_state,
+    // These control signals now come from the execute stage pipeline register
+    input wire decoded_mem_read_enable,
+    input wire decoded_mem_write_enable,
 
-    // Memory Control Signals
-    input reg decoded_mem_read_enable,
-    input reg decoded_mem_write_enable,
-
-    // Registers
-    input data_t rs1,
-    input data_t rs2,
+    // Operands
+    input data_t rs1, // Base address
+    input data_t rs2, // Data for store
     input data_t imm,
 
-    // Data Memory
+    // Data Memory Interface
     output logic mem_read_valid,
     output data_memory_address_t mem_read_address,
     input logic mem_read_ready,
@@ -39,91 +30,70 @@ module lsu (
     output data_t lsu_out
 );
 
-data_t offset_address;
-assign offset_address = rs1 + imm;
+    data_t offset_address;
+    assign offset_address = rs1 + imm;
 
-// always_comb begin 
-//     // $display("Enable: ", enable);
-//     // $display("Mem read enable: ", decoded_mem_read_enable);
-//     // $display("Mem write enable: ", decoded_mem_write_enable);
-//     // $display("Rs1: ", rs1);
-// end
-
-always @(posedge clk) begin
-    // $display("Write enable: ", decoded_mem_write_enable);
-    // $display("Write enable: ", decoded_mem_write_enable);
-    if (reset) begin
-        lsu_state <= LSU_IDLE;
-        lsu_out <= 0;
-        mem_read_valid <= 0;
-        mem_read_address <= 0;
-        mem_write_valid <= 0;
-        mem_write_address <= 0;
-        mem_write_data <= 0;
-    end else if (enable) begin
-        // If memory read enable is triggered (LDR instruction)
-        if (decoded_mem_read_enable) begin 
-            //$display("LSU_State: ", lsu_state);
+    // The internal FSM should be driven by the enable signals, not an external warp_state
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            lsu_state <= LSU_IDLE;
+            lsu_out <= '0;
+            mem_read_valid <= 1'b0;
+            mem_write_valid <= 1'b0;
+            mem_read_address <= '0;
+            mem_write_address <= '0;
+            mem_write_data <= '0;
+        end else begin
             case (lsu_state)
                 LSU_IDLE: begin
-                    // Only read when warp_state = REQUEST
-                    if (warp_state == WARP_REQUEST) begin 
+                    // If enabled and a memory op is decoded, start the request
+                    if (enable && (decoded_mem_read_enable || decoded_mem_write_enable)) begin
                         lsu_state <= LSU_REQUESTING;
                     end
                 end
-                LSU_REQUESTING: begin 
-                    mem_read_valid <= 1;
-                    mem_read_address <= offset_address;
-                    lsu_state <= LSU_WAITING;
+
+                LSU_REQUESTING: begin
+                    if (decoded_mem_read_enable) begin
+                        $display("LSU: Requesting READ from address %h", offset_address);
+                        mem_read_valid <= 1'b1;
+                        mem_read_address <= offset_address;
+                        lsu_state <= LSU_WAITING;
+                    end else if (decoded_mem_write_enable) begin
+                        $display("LSU: Requesting WRITE of data %h to address %h", rs2, offset_address);
+                        mem_write_valid <= 1'b1;
+                        mem_write_address <= offset_address;
+                        mem_write_data <= rs2;
+                        lsu_state <= LSU_WAITING;
+                    end else begin
+                        // This case shouldn't happen if we entered REQUESTING, but it's safe to handle.
+                        lsu_state <= LSU_IDLE;
+                    end
                 end
+
                 LSU_WAITING: begin
-                    if (mem_read_ready == 1) begin
-                        // $display("LSU: Reading %d from memory address %d", mem_read_data, offset_address);
-                        mem_read_valid <= 0;
+                    mem_read_valid <= 1'b0;  // De-assert valid after one cycle
+                    mem_write_valid <= 1'b0; // De-assert valid after one cycle
+
+                    if (decoded_mem_read_enable && mem_read_ready) begin
+                        $display("LSU: Read complete. Data: %h", mem_read_data);
                         lsu_out <= mem_read_data;
                         lsu_state <= LSU_DONE;
-                    end
-                end
-                LSU_DONE: begin 
-                    // Reset when warp_state = UPDATE
-                    if (warp_state == WARP_UPDATE) begin 
-                        lsu_state <= LSU_IDLE;
-                    end
-                end
-            endcase
-        end
-
-        // If memory write enable is triggered (STR instruction)
-        if (decoded_mem_write_enable) begin 
-            //$display("LSU State: ", lsu_state);
-            case (lsu_state)
-                LSU_IDLE: begin
-                    // Only read when warp_state = REQUEST
-                    if (warp_state == WARP_REQUEST) begin 
-                        lsu_state <= LSU_REQUESTING;
-                    end
-                end
-                LSU_REQUESTING: begin 
-                    // $display("LSU: Writing %d to memory address %d", rs2, offset_address);
-                    mem_write_valid <= 1;
-                    mem_write_address <= offset_address;
-                    mem_write_data <= rs2;
-                    lsu_state <= LSU_WAITING;
-                end
-                LSU_WAITING: begin
-                    if (mem_write_ready) begin
-                        mem_write_valid <= 0;
+                    end else if (decoded_mem_write_enable && mem_write_ready) begin
+                        $display("LSU: Write complete.");
                         lsu_state <= LSU_DONE;
                     end
                 end
-                LSU_DONE: begin 
-                    // Reset when warp_state = UPDATE
-                    if (warp_state == WARP_UPDATE) begin 
-                        lsu_state <= LSU_IDLE;
-                    end
+
+                LSU_DONE: begin
+                    // Automatically go back to IDLE. The pipeline will move on.
+                    lsu_state <= LSU_IDLE;
+                    lsu_out <= '0; // Clear output after it's been used
+                end
+
+                default: begin
+                    lsu_state <= LSU_IDLE;
                 end
             endcase
         end
     end
-end
 endmodule

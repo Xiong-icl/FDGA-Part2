@@ -3,10 +3,10 @@
 # This script runs the testbench
 # Usage: ./doit.sh <file1.cpp> <file2.cpp>
 
-cd ..
-g++ -std=c++17 -o assembler/assembler assembler/assembler.cpp
-./assembler/assembler
-cd tb/
+# cd ..
+# g++ -std=c++17 -o assembler/assembler assembler/assembler.cpp
+# ./assembler/assembler
+# cd tb/
 clear
 
 # Constants

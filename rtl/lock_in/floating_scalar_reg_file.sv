@@ -74,7 +74,7 @@ always @(posedge clk) begin
         // Write Logic
         if (warp_state == WARP_UPDATE) begin
             if (decoded_reg_write_enable && decoded_rd_address > 0) begin
-                $display("Scalar Reg File: Writing to register %d", decoded_rd_address);
+                // $display("Scalar Reg File: Writing to register %d", decoded_rd_address);
                 case (decoded_reg_input_mux)
                     ALU_OUT:    registers[decoded_rd_address] <= alu_out;
                     LSU_OUT:    registers[decoded_rd_address] <= lsu_out;
