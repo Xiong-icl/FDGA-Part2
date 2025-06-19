@@ -229,6 +229,12 @@ always_comb begin
     end
 end
 
+always_comb begin
+    $display("PC ", pc);
+    $display("Instruction %d", instruction_mem_read_data);
+    $display("Warp_state: ", warp_state);
+end
+
 // Instruction fetcher
 fetcher fetcher_inst(
     .clk(clk),
