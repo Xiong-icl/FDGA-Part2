@@ -10,22 +10,23 @@ const int DATA_WIDTH = 32;       // Must match Verilog parameter (`common.sv` `D
 
 // C++ equivalents for Verilog enums (values must match Verilog definitions in common.sv)
 enum class WarpState : uint8_t {
-    IDLE = 0,
-    FETCH = 1,
-    DECODE = 2,
+    IDLE    = 0,
+    FETCH   = 1,
+    DECODE  = 2,
     REQUEST = 3,
-    WAIT = 4,
+    WAIT    = 4,
     EXECUTE = 5,
-    UPDATE = 6,
-    DONE = 7
+    UPDATE  = 6,
+    DONE    = 7
 };
 
 enum class RegInputMux : uint8_t {
-    ALU_OUT = 0,
-    LSU_OUT = 1,
-    IMMEDIATE = 2,
-    PC_PLUS_1 = 3,
-    VECTOR_TO_SCALAR = 4
+    ALU_OUT             = 0,
+    LSU_OUT             = 1,
+    IMMEDIATE           = 2,
+    PC_PLUS_1           = 3,
+    PC_SRC_ALU          = 4,
+    VECTOR_TO_SCALAR    = 5
 };
 
 const int ZERO_REG = 0;

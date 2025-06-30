@@ -150,160 +150,160 @@ protected:
 //     EXPECT_EQ(top->decoded_scalar_instruction, 0);
 // }
 
-// // ------------------ R-TYPE TESTS ------------------
-// TEST_F(DecoderTestbench, RTypeInstructions) {
-//     struct TestCase {
-//         uint8_t funct4;
-//         uint8_t expectedALU;
-//         const char* name;
-//     };
+// ------------------ R-TYPE TESTS ------------------
+TEST_F(DecoderTestbench, RTypeInstructions) {
+    struct TestCase {
+        uint8_t funct4;
+        uint8_t expectedALU;
+        const char* name;
+    };
 
-//     std::vector<TestCase> tests = {
-//         {0b0000, ADD, "ADD"},
-//         {0b0001, SUB, "SUB"},
-//         {0b0010, MUL, "MUL"},
-//         {0b0011, DIV, "DIV"},
-//         {0b0100, SLT, "SLT"},
-//         {0b0110, SEQ, "SEQ"},
-//         {0b0111, SNEZ, "SNEZ"},
-//         {0b1000, MIN, "MIN"},
-//         {0b1001, ABS, "ABS"}
-//     };
+    std::vector<TestCase> tests = {
+        {0b0000, ADD, "ADD"},
+        {0b0001, SUB, "SUB"},
+        {0b0010, MUL, "MUL"},
+        {0b0011, DIV, "DIV"},
+        {0b0100, SLT, "SLT"},
+        {0b0110, SEQ, "SEQ"},
+        {0b0111, SNEZ, "SNEZ"},
+        {0b1000, MIN, "MIN"},
+        {0b1001, ABS, "ABS"}
+    };
 
-//     for (auto& test : tests) {
-//         resetDecoder();
-//         uint32_t instr = makeInstr(OPCODE_R, test.funct4, 5, 10, 15, 0, false);
-//         decodeInstruction(instr);
+    for (auto& test : tests) {
+        resetDecoder();
+        uint32_t instr = makeInstr(OPCODE_R, test.funct4, 5, 10, 15, 0, false);
+        decodeInstruction(instr);
         
-//         EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rd_address, 5) << "RD address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rs1_address, 10) << "RS1 address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rs2_address, 15) << "RS2 address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
-//     }
-// }
+        EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
+        EXPECT_EQ(top->decoded_rd_address, 5) << "RD address failed for " << test.name;
+        EXPECT_EQ(top->decoded_rs1_address, 10) << "RS1 address failed for " << test.name;
+        EXPECT_EQ(top->decoded_rs2_address, 15) << "RS2 address failed for " << test.name;
+        EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
+    }
+}
 
-// // ------------------ I-TYPE TESTS ------------------
-// TEST_F(DecoderTestbench, ITypeInstructions) {
-//     struct TestCase {
-//         uint8_t funct4;
-//         uint8_t expectedALU;
-//         const char* name;
-//     };
+// ------------------ I-TYPE TESTS ------------------
+TEST_F(DecoderTestbench, ITypeInstructions) {
+    struct TestCase {
+        uint8_t funct4;
+        uint8_t expectedALU;
+        const char* name;
+    };
 
-//     std::vector<TestCase> tests = {
-//         {0b0000, ADDI, "ADDI"},
-//         {0b0010, MULI, "MULI"},
-//         {0b0011, DIVI, "DIVI"},
-//         {0b1010, SLLI, "SLLI"}
-//     };
+    std::vector<TestCase> tests = {
+        {0b0000, ADDI, "ADDI"},
+        {0b0010, MULI, "MULI"},
+        {0b0011, DIVI, "DIVI"},
+        {0b1010, SLLI, "SLLI"}
+    };
 
-//     for (auto& test : tests) {
-//         resetDecoder();
-//         uint32_t instr = makeInstr(OPCODE_I, test.funct4, 7, 12, 0, 0x1234, false);
-//         decodeInstruction(instr);
+    for (auto& test : tests) {
+        resetDecoder();
+        uint32_t instr = makeInstr(OPCODE_I, test.funct4, 7, 12, 0, 0x1234, false);
+        decodeInstruction(instr);
         
-//         EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rd_address, 7) << "RD address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rs1_address, 12) << "RS1 address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
+        EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
+        EXPECT_EQ(top->decoded_rd_address, 7) << "RD address failed for " << test.name;
+        EXPECT_EQ(top->decoded_rs1_address, 12) << "RS1 address failed for " << test.name;
+        EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
         
-//         // Check sign extension of 14-bit immediate
-//         int32_t expected_imm = (int32_t)(int16_t)((0x1234 << 2) >> 2); // Sign extend 14-bit
-//         EXPECT_EQ((int32_t)top->decoded_immediate, expected_imm) << "Immediate failed for " << test.name;
-//     }
-// }
+        // Check sign extension of 14-bit immediate
+        int32_t expected_imm = (int32_t)(int16_t)((0x1234 << 2) >> 2); // Sign extend 14-bit
+        EXPECT_EQ((int32_t)top->decoded_immediate, expected_imm) << "Immediate failed for " << test.name;
+    }
+}
 
-// // ------------------ F-TYPE (Floating Point) TESTS ------------------
-// TEST_F(DecoderTestbench, FTypeInstructions) {
-//     struct TestCase {
-//         uint8_t funct4;
-//         uint8_t expectedALU;
-//         const char* name;
-//     };
+// ------------------ F-TYPE (Floating Point) TESTS ------------------
+TEST_F(DecoderTestbench, FTypeInstructions) {
+    struct TestCase {
+        uint8_t funct4;
+        uint8_t expectedALU;
+        const char* name;
+    };
 
-//     std::vector<TestCase> tests = {
-//         {0b0000, FADD, "FADD"},
-//         {0b0001, FSUB, "FSUB"},
-//         {0b0010, FMUL, "FMUL"},
-//         {0b0011, FDIV, "FDIV"},
-//         {0b0100, FSLT, "FLT"},
-//         {0b0101, FNEG, "FNEG"},
-//         {0b0110, FEQ, "FEQ"},
-//         {0b0111, FMIN, "FMIN"},
-//         {0b1000, FABS, "FABS"},
-//         {0b1001, FCVT_W_S, "FCVT_W_S"},
-//         {0b1010, FCVT_S_W, "FCVT_S_W"}
-//     };
+    std::vector<TestCase> tests = {
+        {0b0000, FADD, "FADD"},
+        {0b0001, FSUB, "FSUB"},
+        {0b0010, FMUL, "FMUL"},
+        {0b0011, FDIV, "FDIV"},
+        {0b0100, FSLT, "FLT"},
+        {0b0101, FNEG, "FNEG"},
+        {0b0110, FEQ, "FEQ"},
+        {0b0111, FMIN, "FMIN"},
+        {0b1000, FABS, "FABS"},
+        {0b1001, FCVT_W_S, "FCVT_W_S"},
+        {0b1010, FCVT_S_W, "FCVT_S_W"}
+    };
 
-//     for (auto& test : tests) {
-//         resetDecoder();
-//         uint32_t instr = makeInstr(OPCODE_F, test.funct4, 3, 8, 13, 0, false);
-//         decodeInstruction(instr);
+    for (auto& test : tests) {
+        resetDecoder();
+        uint32_t instr = makeInstr(OPCODE_F, test.funct4, 3, 8, 13, 0, false);
+        decodeInstruction(instr);
         
-//         EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
-//         EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rd_address, 3) << "RD address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_rs1_address, 8) << "RS1 address failed for " << test.name;
-//         EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
-//     }
-// }
+        EXPECT_EQ(top->decoded_alu_instruction, test.expectedALU) << "Failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for " << test.name;
+        EXPECT_EQ(top->decoded_reg_input_mux, ALU_OUT) << "RegInputMux failed for " << test.name;
+        EXPECT_EQ(top->decoded_rd_address, 3) << "RD address failed for " << test.name;
+        EXPECT_EQ(top->decoded_rs1_address, 8) << "RS1 address failed for " << test.name;
+        EXPECT_EQ(top->decoded_scalar_instruction, 0) << "Scalar flag failed for " << test.name;
+    }
+}
 
-// // ------------------ M-TYPE LOAD/STORE TESTS ------------------
-// TEST_F(DecoderTestbench, MTypeLoadStore) {
-//     // LW: funct3=0b000
-//     resetDecoder();
-//     // CORRECTED: Added scalar (false) argument
-//     uint32_t instr_lw = makeInstr(OPCODE_M, 0b000, 4, 9, 0, 0x2ABC, false);
-//     decodeInstruction(instr_lw);
-//     EXPECT_EQ(top->decoded_mem_read_enable, 1);
-//     EXPECT_EQ(top->floatingWrite, 0);
+// ------------------ M-TYPE LOAD/STORE TESTS ------------------
+TEST_F(DecoderTestbench, MTypeLoadStore) {
+    // LW: funct3=0b000
+    resetDecoder();
+    // CORRECTED: Added scalar (false) argument
+    uint32_t instr_lw = makeInstr(OPCODE_M, 0b000, 4, 9, 0, 0x2ABC, false);
+    decodeInstruction(instr_lw);
+    EXPECT_EQ(top->decoded_mem_read_enable, 1);
+    EXPECT_EQ(top->floatingWrite, 0);
 
-//     // SW: funct3=0b001
-//     resetDecoder();
-//     // CORRECTED: Added scalar (false) argument
-//     uint32_t instr_sw = makeInstr(OPCODE_M, 0b001, 0, 11, 16, 0x1DEF, false);
-//     decodeInstruction(instr_sw);
-//     EXPECT_EQ(top->decoded_mem_write_enable, 1);
-//     EXPECT_EQ(top->decoded_reg_write_enable, 0);
+    // SW: funct3=0b001
+    resetDecoder();
+    // CORRECTED: Added scalar (false) argument
+    uint32_t instr_sw = makeInstr(OPCODE_M, 0b001, 0, 11, 16, 0x1DEF, false);
+    decodeInstruction(instr_sw);
+    EXPECT_EQ(top->decoded_mem_write_enable, 1);
+    EXPECT_EQ(top->decoded_reg_write_enable, 0);
 
-//     // FLW: funct3=0b010
-//     resetDecoder();
-//     // CORRECTED: Added scalar (false) argument
-//     uint32_t instr_flw = makeInstr(OPCODE_M, 0b010, 4, 9, 0, 0x2ABC, false);
-//     decodeInstruction(instr_flw);
-//     EXPECT_EQ(top->decoded_mem_read_enable, 1);
-//     EXPECT_EQ(top->floatingWrite, 1);
+    // FLW: funct3=0b010
+    resetDecoder();
+    // CORRECTED: Added scalar (false) argument
+    uint32_t instr_flw = makeInstr(OPCODE_M, 0b010, 4, 9, 0, 0x2ABC, false);
+    decodeInstruction(instr_flw);
+    EXPECT_EQ(top->decoded_mem_read_enable, 1);
+    EXPECT_EQ(top->floatingWrite, 1);
 
-//     // FSW: funct3=0b011
-//     resetDecoder();
-//     // CORRECTED: Added scalar (false) argument
-//     uint32_t instr_fsw = makeInstr(OPCODE_M, 0b011, 0, 11, 16, 0x1DEF, false);
-//     decodeInstruction(instr_fsw);
-//     EXPECT_EQ(top->decoded_mem_write_enable, 1);
-//     EXPECT_EQ(top->floatingRead, 0b10);
-//     EXPECT_EQ(top->decoded_reg_write_enable, 0);
-// }
+    // FSW: funct3=0b011
+    resetDecoder();
+    // CORRECTED: Added scalar (false) argument
+    uint32_t instr_fsw = makeInstr(OPCODE_M, 0b011, 0, 11, 16, 0x1DEF, false);
+    decodeInstruction(instr_fsw);
+    EXPECT_EQ(top->decoded_mem_write_enable, 1);
+    EXPECT_EQ(top->floatingRead, 0b10);
+    EXPECT_EQ(top->decoded_reg_write_enable, 0);
+}
 
-// // ------------------ UPPER IMMEDIATE TEST ------------------
-// TEST_F(DecoderTestbench, UpperImmediate) {
-//     resetDecoder();
-//     uint32_t instr = makeInstr(OPCODE_UP, 0, 6, 0, 0, 0x12345, false);
-//     decodeInstruction(instr);
+// ------------------ UPPER IMMEDIATE TEST ------------------
+TEST_F(DecoderTestbench, UpperImmediate) {
+    resetDecoder();
+    uint32_t instr = makeInstr(OPCODE_UP, 0, 6, 0, 0, 0x12345, false);
+    decodeInstruction(instr);
     
-//     EXPECT_EQ(top->decoded_reg_write_enable, 1);
-//     EXPECT_EQ(top->decoded_reg_input_mux, IMMEDIATE);
-//     EXPECT_EQ(top->decoded_rd_address, 6);
+    EXPECT_EQ(top->decoded_reg_write_enable, 1);
+    EXPECT_EQ(top->decoded_reg_input_mux, IMMEDIATE);
+    EXPECT_EQ(top->decoded_rd_address, 6);
     
-//     // Upper immediate should be shifted left 12 bits
-//     uint32_t expected_imm = (0x12345 & 0xFFFFF) << 12;
-//     EXPECT_EQ(top->decoded_immediate, expected_imm);
-// }
+    // Upper immediate should be shifted left 12 bits
+    uint32_t expected_imm = (0x12345 & 0xFFFFF) << 12;
+    EXPECT_EQ(top->decoded_immediate, expected_imm);
+}
 
 // ------------------ JUMP/BRANCH TESTS ------------------
 TEST_F(DecoderTestbench, Branch) {
@@ -342,70 +342,70 @@ TEST_F(DecoderTestbench, Jump) {
     // The decoder immediate logic needs to handle the re-alignment
 }
 
-// // ------------------ SCALAR FLAG TEST ------------------
-// TEST_F(DecoderTestbench, ScalarFlagTest) {
-//     resetDecoder();
+// ------------------ SCALAR FLAG TEST ------------------
+TEST_F(DecoderTestbench, ScalarFlagTest) {
+    resetDecoder();
     
-//     // Test a SCALAR R-type instruction (s.add)
-//     uint32_t instr_r = makeInstr(OPCODE_R, 0b0000, 1, 2, 3, 0, true);
-//     decodeInstruction(instr_r);
+    // Test a SCALAR R-type instruction (s.add)
+    uint32_t instr_r = makeInstr(OPCODE_R, 0b0000, 1, 2, 3, 0, true);
+    decodeInstruction(instr_r);
     
-//     EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for R-Type";
-//     EXPECT_EQ(top->decoded_alu_instruction, ADD) << "ALU op failed for scalar R-Type";
-//     EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for scalar R-Type";
+    EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for R-Type";
+    EXPECT_EQ(top->decoded_alu_instruction, ADD) << "ALU op failed for scalar R-Type";
+    EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for scalar R-Type";
 
-//     // Test a SCALAR M-type instruction (s.lw)
-//     resetDecoder();
-//     uint32_t instr_m = makeInstr(OPCODE_M, 0b000, 4, 5, 0, 128, true);
-//     decodeInstruction(instr_m);
+    // Test a SCALAR M-type instruction (s.lw)
+    resetDecoder();
+    uint32_t instr_m = makeInstr(OPCODE_M, 0b000, 4, 5, 0, 128, true);
+    decodeInstruction(instr_m);
     
-//     EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for M-Type";
-//     EXPECT_EQ(top->decoded_mem_read_enable, 1) << "MemRead failed for scalar M-Type";
+    EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for M-Type";
+    EXPECT_EQ(top->decoded_mem_read_enable, 1) << "MemRead failed for scalar M-Type";
     
-//     // Test a SCALAR P-type instruction (s.lui)
-//     resetDecoder();
-//     uint32_t instr_p = makeInstr(OPCODE_UP, 0, 6, 0, 0, 0xABCDE, true);
-//     decodeInstruction(instr_p);
+    // Test a SCALAR P-type instruction (s.lui)
+    resetDecoder();
+    uint32_t instr_p = makeInstr(OPCODE_UP, 0, 6, 0, 0, 0xABCDE, true);
+    decodeInstruction(instr_p);
 
-//     EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for P-Type";
-//     EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for scalar P-Type";
-//     EXPECT_EQ(top->decoded_reg_input_mux, IMMEDIATE) << "Mux selection failed for LUI";
-// }
+    EXPECT_EQ(top->decoded_scalar_instruction, 1) << "Scalar flag failed for P-Type";
+    EXPECT_EQ(top->decoded_reg_write_enable, 1) << "RegWrite failed for scalar P-Type";
+    EXPECT_EQ(top->decoded_reg_input_mux, IMMEDIATE) << "Mux selection failed for LUI";
+}
 
-// // ------------------ DEFAULT CASE TEST ------------------
-// TEST_F(DecoderTestbench, DefaultCase) {
-//     resetDecoder();
-//     uint32_t instr = (0b110 << 29); // Invalid opcode
-//     decodeInstruction(instr);
+// ------------------ DEFAULT CASE TEST ------------------
+TEST_F(DecoderTestbench, DefaultCase) {
+    resetDecoder();
+    uint32_t instr = (0b110 << 29); // Invalid opcode
+    decodeInstruction(instr);
     
-//     // Should maintain default values set during WARP_DECODE
-//     EXPECT_EQ(top->decoded_reg_write_enable, 0);
-//     EXPECT_EQ(top->decoded_mem_write_enable, 0);
-//     EXPECT_EQ(top->decoded_mem_read_enable, 0);
-//     EXPECT_EQ(top->decoded_branch, 0);
-//     EXPECT_EQ(top->decoded_halt, 0);
-// }
+    // Should maintain default values set during WARP_DECODE
+    EXPECT_EQ(top->decoded_reg_write_enable, 0);
+    EXPECT_EQ(top->decoded_mem_write_enable, 0);
+    EXPECT_EQ(top->decoded_mem_read_enable, 0);
+    EXPECT_EQ(top->decoded_branch, 0);
+    EXPECT_EQ(top->decoded_halt, 0);
+}
 
-// // ------------------ WARP STATE TEST ------------------
-// TEST_F(DecoderTestbench, WarpStateControl) {
-//     resetDecoder();
+// ------------------ WARP STATE TEST ------------------
+TEST_F(DecoderTestbench, WarpStateControl) {
+    resetDecoder();
     
-//     // Test that decoder only responds during WARP_DECODE state
-//     top->instruction = makeInstr(OPCODE_R, 0b0000, 1, 2, 3, 0, false);
-//     top->warp_state = 0; // Not WARP_DECODE
-//     clockCycle();
+    // Test that decoder only responds during WARP_DECODE state
+    top->instruction = makeInstr(OPCODE_R, 0b0000, 1, 2, 3, 0, false);
+    top->warp_state = 0; // Not WARP_DECODE
+    clockCycle();
     
-//     // // Should maintain reset values
-//     // EXPECT_EQ(top->decoded_reg_write_enable, 0);
-//     // EXPECT_EQ(top->decoded_alu_instruction, ADDI);
+    // // Should maintain reset values
+    // EXPECT_EQ(top->decoded_reg_write_enable, 0);
+    // EXPECT_EQ(top->decoded_alu_instruction, ADDI);
     
-//     // Now test with correct warp state
-//     top->warp_state = WARP_DECODE;
-//     clockCycle();
+    // Now test with correct warp state
+    top->warp_state = WARP_DECODE;
+    clockCycle();
     
-//     EXPECT_EQ(top->decoded_reg_write_enable, 1);
-//     EXPECT_EQ(top->decoded_alu_instruction, ADD);
-// }
+    EXPECT_EQ(top->decoded_reg_write_enable, 1);
+    EXPECT_EQ(top->decoded_alu_instruction, ADD);
+}
 
 // ------------------ MAIN ------------------
 int main(int argc, char **argv) {

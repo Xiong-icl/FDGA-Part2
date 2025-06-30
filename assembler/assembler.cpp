@@ -666,9 +666,9 @@ uint32_t encodeXType(string op, const vector<string>& args) {
 int main() {
     initregisterMap();
     //ifstream input("bin/output/algotests/for/for.s"); // Example test file
-    ifstream input("assembler/test.asm");
-    ofstream instrOut("tb/test/tmp_test/test.hex");
-    ofstream dataOut("tb/test/tmp_test/data_sx_flt.hex");
+    ifstream input("assembler/r_scalar.asm");
+    ofstream instrOut("tb/test/tmp_test/hex_files/rscalar.hex");
+    ofstream dataOut("tb/test/tmp_test/hex_files/data_rscalar.hex");
     vector<pair<int, string>> instructions;
     vector<pair<int, uint32_t>> data;
     string line;

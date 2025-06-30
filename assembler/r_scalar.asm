@@ -13,8 +13,6 @@ s.sw s3, 4(sp)
 s.li s2, 5
 s.slt s3, s2, s1
 s.sw s3, 5(sp)
-s.seq s3, s1, s2 
-s.sw s3, 6(sp)
 s.snez s3, s1 
 s.sw s3, 7(sp)
 s.li s4, -5
