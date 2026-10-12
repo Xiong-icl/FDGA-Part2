@@ -3,10 +3,16 @@
 # This script runs the testbench
 # Usage: ./doit.sh <file1.cpp> <file2.cpp>
 
+cd ..
+g++ -std=c++17 -o assembler/assembler assembler/assembler.cpp
+./assembler/assembler
+cd tb/
+clear
+
 # Constants
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
-TEST_FOLDER=$(realpath "$SCRIPT_DIR/test")
-RTL_FOLDER=$(realpath "$SCRIPT_DIR/../rtl")
+TEST_FOLDER=$(realpath "$SCRIPT_DIR/test/tmp_test")
+RTL_FOLDER=$(realpath "$SCRIPT_DIR/../rtl/lock_in")
 GREEN=$(tput setaf 2)
 RED=$(tput setaf 1)
 RESET=$(tput sgr0)
@@ -18,7 +24,7 @@ fails=0
 # Handle terminal arguments
 if [[ $# -eq 0 ]]; then
     # If no arguments provided, run all tests
-    files=(${TEST_FOLDER}/*_tb.cpp)
+    files=(${TEST_FOLDER}/*.cpp)
 else
     # If arguments provided, use them as input files
     files=("$@")
@@ -58,7 +64,6 @@ for file in "${files[@]}"; do
     # Check if the test succeeded or not
     if [ $? -eq 0 ]; then
         ((passes++))
-        echo echo "Current: ${passes}"
     else
         ((fails++))
     fi

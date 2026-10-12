@@ -3,6 +3,7 @@
 # Usage: ./compile.sh <file.s>
 
 # Default vars
+input_file="program.s"
 output_file="../rtl/program.hex"
 
 
@@ -71,7 +72,7 @@ rm asm/*dis.txt
 riscv64-unknown-elf-objdump -D -b binary \
                             -m riscv a.bin > asm/${basename}.dis.txt
 
-#m "a.out.reloc"
+rm "a.out.reloc"
 
 # Formats into a hex file
 od -v -An -t x1 "a.bin" | tr -s '\n' | awk '{$1=$1};1' > "${output_file}"
